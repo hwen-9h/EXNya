@@ -1,0 +1,822 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <title>EXNYA | P2P Trading</title>
+    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600&family=Sora:wght@400;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <style>
+        :root {
+            --bg-base: #080b0f;
+            --bg-elevated: #0d1117;
+            --bg-hover: #161c25;
+            --brand-yellow: #fcd535;
+            --brand-yellow-dim: rgba(252,213,53,0.08);
+            --text-primary: #e6e9ef;
+            --text-secondary: #5e6a7a;
+            --text-muted: #3a4554;
+            --border-light: #1e2733;
+            --border-subtle: #151d27;
+            --trade-green: #0ecb81;
+            --trade-red: #f6465d;
+            --sidebar-width: 240px;
+        }
+        * { margin:0; padding:0; box-sizing:border-box; }
+        body {
+            background: var(--bg-base);
+            color: var(--text-primary);
+            display: flex;
+            min-height: 100vh;
+            font-family: 'DM Sans', sans-serif;
+            font-size: 14px;
+        }
+        #particle-canvas {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 0;
+            pointer-events: none;
+            opacity: 0.45;
+        }
+        .app-container {
+            position: relative;
+            z-index: 1;
+            display: flex;
+            width: 100%;
+        }
+        .sidebar {
+            position: fixed;
+            left: 0;
+            top: 0;
+            bottom: 0;
+            width: var(--sidebar-width);
+            background: var(--bg-elevated);
+            border-right: 1px solid var(--border-light);
+            transform: translateX(-100%);
+            transition: transform 0.3s;
+            z-index: 100;
+            overflow-y: auto;
+        }
+        .sidebar.open { transform: translateX(0); }
+        @media (min-width: 768px) { .sidebar { transform: translateX(0); position: relative; } }
+        .sidebar-toggle {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 100%;
+            padding: 16px 0;
+            cursor: pointer;
+            color: var(--text-muted);
+            border-bottom: 1px solid var(--border-light);
+        }
+        .sidebar-nav { flex:1; padding: 16px 10px; display: flex; flex-direction: column; gap: 2px; }
+        .sidebar-nav a {
+            display: flex;
+            align-items: center;
+            gap: 11px;
+            padding: 10px 14px;
+            border-radius: 8px;
+            color: var(--text-secondary);
+            text-decoration: none;
+            font-size: 13.5px;
+            font-weight: 500;
+        }
+        .sidebar-nav a.active { background: var(--brand-yellow-dim); color: var(--brand-yellow); }
+        .mobile-toggle {
+            position: fixed;
+            top: 14px;
+            left: 14px;
+            z-index: 110;
+            width: 38px;
+            height: 38px;
+            background: var(--bg-elevated);
+            border: 1px solid var(--border-light);
+            border-radius: 7px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+        }
+        @media (min-width: 768px) { .mobile-toggle { display: none; } }
+        .main-content {
+            flex: 1;
+            padding: 70px 16px 20px;
+            max-width: 100%;
+        }
+        @media (min-width: 768px) { .main-content { padding: 28px 32px; max-width: 1400px; } }
+        .top-bar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 12px;
+            margin-bottom: 24px;
+        }
+        .top-logo { height: 30px; width: auto; }
+        .user-info-row { display: flex; align-items: center; gap: 12px; }
+        .avatar {
+            width: 40px;
+            height: 40px;
+            border-radius: 10px;
+            background: linear-gradient(135deg, var(--brand-yellow) 0%, #c9920a 100%);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-family: 'Sora', sans-serif;
+            font-weight: 700;
+            font-size: 16px;
+            color: #000;
+        }
+        .user-text { display: flex; flex-direction: column; gap: 2px; }
+        .profile-name { font-weight: 600; font-size: 14px; }
+        .user-email { font-size: 11px; color: var(--text-secondary); }
+        .logout-btn {
+            background: transparent;
+            border: 1px solid var(--border-light);
+            color: var(--text-secondary);
+            padding: 6px 14px;
+            border-radius: 7px;
+            cursor: pointer;
+        }
+        .p2p-header h1 { font-family: 'Sora', sans-serif; font-size: 24px; margin-bottom: 8px; }
+        .p2p-sub {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 12px;
+            margin-bottom: 20px;
+        }
+        .warning-badge {
+            background: rgba(246,70,93,0.12);
+            border: 1px solid rgba(246,70,93,0.2);
+            border-radius: 8px;
+            padding: 6px 12px;
+            font-size: 11px;
+            color: #f97387;
+        }
+        .tabs {
+            display: flex;
+            gap: 4px;
+            border-bottom: 1px solid var(--border-light);
+            margin-bottom: 20px;
+            overflow-x: auto;
+        }
+        .tab {
+            background: transparent;
+            border: none;
+            padding: 10px 16px;
+            font-weight: 600;
+            font-size: 14px;
+            color: var(--text-secondary);
+            cursor: pointer;
+            white-space: nowrap;
+        }
+        .tab.active { color: var(--brand-yellow); border-bottom: 2px solid var(--brand-yellow); }
+        .filter-bar {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            margin-bottom: 20px;
+            background: var(--bg-elevated);
+            padding: 12px;
+            border-radius: 12px;
+        }
+        .filter-select, .filter-input {
+            background: var(--bg-base);
+            border: 1px solid var(--border-light);
+            border-radius: 8px;
+            padding: 8px 12px;
+            color: var(--text-primary);
+            font-size: 13px;
+            outline: none;
+        }
+        .btn-primary {
+            background: var(--brand-yellow);
+            color: #000;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 8px;
+            font-weight: 600;
+            cursor: pointer;
+        }
+        .order-card {
+            background: var(--bg-elevated);
+            border: 1px solid var(--border-light);
+            border-radius: 16px;
+            padding: 16px;
+            margin-bottom: 12px;
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            justify-content: space-between;
+            gap: 12px;
+        }
+        .merchant-info { display: flex; align-items: center; gap: 12px; min-width: 160px; }
+        .merchant-avatar {
+            width: 44px;
+            height: 44px;
+            border-radius: 50%;
+            background: var(--brand-yellow-dim);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 700;
+            font-size: 18px;
+            color: var(--brand-yellow);
+        }
+        .merchant-name { font-weight: 700; font-size: 15px; }
+        .merchant-stats { font-size: 11px; color: var(--text-secondary); }
+        .order-price { font-family: monospace; font-size: 20px; font-weight: 700; color: var(--brand-yellow); }
+        .order-limits, .order-amount { font-size: 12px; color: var(--text-secondary); }
+        .payment-method {
+            background: var(--bg-base);
+            padding: 4px 10px;
+            border-radius: 20px;
+            font-size: 12px;
+        }
+        .action-btn {
+            background: var(--brand-yellow);
+            color: #000;
+            border: none;
+            padding: 6px 20px;
+            border-radius: 8px;
+            font-weight: 700;
+            cursor: pointer;
+        }
+        .action-btn.small { padding: 4px 12px; font-size: 12px; }
+        .status-badge {
+            padding: 2px 8px;
+            border-radius: 12px;
+            font-size: 11px;
+            font-weight: 600;
+        }
+        .status-open { background: rgba(14,203,129,0.1); color: var(--trade-green); }
+        .status-matched { background: rgba(252,213,53,0.1); color: var(--brand-yellow); }
+        .status-escrowed { background: rgba(252,213,53,0.15); color: var(--brand-yellow); }
+        .status-paid { background: rgba(14,203,129,0.15); color: var(--trade-green); }
+        .status-completed { background: rgba(14,203,129,0.2); color: var(--trade-green); }
+        .status-disputed { background: rgba(246,70,93,0.15); color: var(--trade-red); }
+        .status-cancelled { background: rgba(132,142,156,0.1); color: var(--text-muted); }
+        .create-form {
+            background: var(--bg-elevated);
+            padding: 20px;
+            border-radius: 16px;
+            max-width: 500px;
+        }
+        .create-form input, .create-form select {
+            width: 100%;
+            background: var(--bg-base);
+            border: 1px solid var(--border-light);
+            border-radius: 8px;
+            padding: 10px;
+            margin-bottom: 12px;
+            color: var(--text-primary);
+        }
+        .kyc-warning {
+            background: rgba(246,70,93,0.1);
+            border-left: 3px solid var(--trade-red);
+            padding: 10px;
+            border-radius: 8px;
+            margin-bottom: 16px;
+            font-size: 12px;
+        }
+        .empty-state { text-align: center; padding: 40px; color: var(--text-muted); }
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.8);
+            z-index: 1000;
+            display: none;
+            justify-content: center;
+            align-items: center;
+            padding: 16px;
+        }
+        .modal {
+            background: var(--bg-elevated);
+            border-radius: 16px;
+            padding: 24px;
+            width: 100%;
+            max-width: 400px;
+            text-align: center;
+        }
+        .modal button { margin: 8px; }
+        @media (max-width: 700px) { .order-card { flex-direction: column; align-items: stretch; } .merchant-info { justify-content: space-between; } }
+    </style>
+</head>
+<body>
+    <canvas id="particle-canvas"></canvas>
+    <div class="app-container">
+        <aside class="sidebar" id="sidebar">
+            <div class="sidebar-toggle" onclick="toggleSidebar()"><svg viewBox="0 0 24 24" width="18" height="18"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg></div>
+            <nav class="sidebar-nav">
+                <a href="./profile.html">Overview</a>
+                <a href="./wallet.html">Wallet</a>
+                <a href="./live-portfolio.html">Live Portfolio</a>
+                <a href="./markets.html">Markets</a>
+                <a href="./swap.html">Swap</a>
+                <a href="./news.html">News</a>
+                <a href="./security.html">Security</a>
+                <a href="#" class="active">P2P</a>
+            </nav>
+        </aside>
+        <div class="mobile-toggle" id="mobile-toggle" onclick="toggleSidebar()"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg></div>
+
+        <main class="main-content">
+            <div class="top-bar">
+                <img class="top-logo" src="WhatsApp Image 2026-04-03 at 4.24.59 AM.jpeg" alt="EXNYA">
+                <div class="user-info-row">
+                    <div class="avatar" id="user-initials">U</div>
+                    <div class="user-text">
+                        <div class="profile-name" id="user-fullname">Loading...</div>
+                        <div class="user-email" id="user-email-display">--</div>
+                    </div>
+                </div>
+                <button class="logout-btn" onclick="logout()">Sign Out</button>
+            </div>
+
+            <div class="p2p-header">
+                <h1>Express P2P Block Trade</h1>
+                <div class="p2p-sub">
+                    <span class="warning-badge">⚠️ Stay vigilant. Trade only within platform.</span>
+                    <span style="color:var(--brand-yellow);">Africa exclusive · NGN Liquidity Boost</span>
+                </div>
+            </div>
+
+            <div class="tabs" id="p2p-tabs">
+                <button class="tab active" data-tab="buy">Buy</button>
+                <button class="tab" data-tab="sell">Sell</button>
+                <button class="tab" data-tab="orders">My Orders</button>
+                <button class="tab" data-tab="ads">Create Ad</button>
+            </div>
+
+            <div id="kyc-warning" class="kyc-warning" style="display:none;">
+                ⚠️ You must complete identity verification to trade. <a href="./profile.html" style="color:var(--brand-yellow);">Verify now</a>
+            </div>
+
+            <div id="filter-bar" class="filter-bar">
+                <select id="filter-asset" class="filter-select">
+                    <option value="USDT">USDT</option>
+                    <option value="BTC">BTC</option>
+                    <option value="ETH">ETH</option>
+                </select>
+                <input type="number" id="filter-amount" class="filter-input" placeholder="Min amount (NGN)">
+                <select id="filter-payment" class="filter-select">
+                    <option value="">All Payments</option>
+                    <option value="Bank Transfer">Bank Transfer</option>
+                    <option value="Opay">Opay</option>
+                    <option value="PalmPay">PalmPay</option>
+                </select>
+                <button class="btn-primary" onclick="applyFilters()">Search</button>
+            </div>
+
+            <div id="tab-content"></div>
+        </main>
+    </div>
+
+    <!-- Confirmation Modal -->
+    <div id="confirm-modal" class="modal-overlay">
+        <div class="modal">
+            <h3>Confirm Trade</h3>
+            <p id="confirm-details"></p>
+            <button class="btn-primary" id="confirm-yes">Confirm</button>
+            <button class="btn-outline" onclick="closeConfirmModal()">Cancel</button>
+        </div>
+    </div>
+
+    <script>
+        const SUPABASE_URL = 'https://clwgengvcdokdzubdfxd.supabase.co';
+        const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNsd2dlbmd2Y2Rva2R6dWJkZnhkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzc5MTIxNjEsImV4cCI6MjA5MzQ4ODE2MX0.0zgizWWXLIHiKdNUAJ3yKaIaxEKsHoFeEIo8IUAMtHU';
+        const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+        let currentUser = null;
+        let currentProfile = { kyc_status: 'unverified', completed_trades_count: 0, merchant: false, first_name: '' };
+        let currentTab = 'buy';
+        let allTrades = [];
+        let myTrades = [];
+        let userCache = {};
+        let pendingAdId = null;
+        let autoRefreshInterval = null;
+
+        function toggleSidebar() { document.getElementById('sidebar').classList.toggle('open'); }
+
+        // Particles
+        const canvas = document.getElementById('particle-canvas');
+        const ctx = canvas.getContext('2d');
+        let particles = [];
+        function resizeCanvas() { canvas.width = window.innerWidth; canvas.height = window.innerHeight; }
+        resizeCanvas();
+        window.addEventListener('resize', resizeCanvas);
+        class Particle {
+            constructor() {
+                this.x = Math.random() * canvas.width;
+                this.y = Math.random() * canvas.height;
+                this.size = Math.random() * 1.5 + 0.3;
+                this.speedX = (Math.random() - 0.5) * 0.4;
+                this.speedY = (Math.random() - 0.5) * 0.4;
+            }
+            update() {
+                this.x += this.speedX;
+                this.y += this.speedY;
+                if (this.x < 0) this.x = canvas.width;
+                if (this.x > canvas.width) this.x = 0;
+                if (this.y < 0) this.y = canvas.height;
+                if (this.y > canvas.height) this.y = 0;
+            }
+            draw() {
+                ctx.beginPath();
+                ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
+                ctx.fillStyle = '#D4AF37';
+                ctx.fill();
+            }
+        }
+        for (let i = 0; i < 60; i++) particles.push(new Particle());
+        function animate() { ctx.clearRect(0, 0, canvas.width, canvas.height); particles.forEach(p => { p.update(); p.draw(); }); requestAnimationFrame(animate); }
+        animate();
+
+        // Helper: close modal
+        function closeConfirmModal() {
+            document.getElementById('confirm-modal').style.display = 'none';
+            pendingAdId = null;
+        }
+
+        // Main initialization
+        async function init() {
+            try {
+                const { data: { session }, error: sessionError } = await supabaseClient.auth.getSession();
+                if (sessionError) throw sessionError;
+                if (!session) { window.location.href = './pl.html'; return; }
+                currentUser = session.user;
+
+                const { data: profile, error: profileError } = await supabaseClient
+                    .from('profiles')
+                    .select('kyc_status, merchant, completed_trades_count, first_name')
+                    .eq('id', currentUser.id)
+                    .maybeSingle();
+                if (profile) currentProfile = { ...currentProfile, ...profile };
+                const displayName = currentProfile.first_name || currentUser.email.split('@')[0];
+                document.getElementById('user-fullname').textContent = displayName;
+                document.getElementById('user-email-display').textContent = currentUser.email;
+                document.getElementById('user-initials').textContent = (currentProfile.first_name ? currentProfile.first_name[0] : currentUser.email[0]).toUpperCase();
+                
+                if (currentProfile.kyc_status !== 'verified') {
+                    document.getElementById('kyc-warning').style.display = 'block';
+                }
+
+                await loadData();
+                renderTab();
+
+                // Auto-refresh orders every 10 seconds when on orders tab
+                if (autoRefreshInterval) clearInterval(autoRefreshInterval);
+                autoRefreshInterval = setInterval(async () => {
+                    if (currentTab === 'orders') {
+                        await loadData();
+                        renderTab();
+                    }
+                }, 10000);
+            } catch (err) {
+                console.error('Init error:', err);
+                document.getElementById('tab-content').innerHTML = '<div class="empty-state">Error loading page. Please refresh.</div>';
+            }
+        }
+
+        async function loadData() {
+            try {
+                // Open ads
+                const { data: openAds, error: adsError } = await supabaseClient
+                    .from('p2p_trades')
+                    .select('*')
+                    .eq('status', 'open')
+                    .order('created_at', { ascending: false });
+                if (adsError) throw adsError;
+                allTrades = openAds || [];
+
+                // User's involved trades (all statuses)
+                const { data: involved, error: invError } = await supabaseClient
+                    .from('p2p_trades')
+                    .select('*')
+                    .or(`user_id.eq.${currentUser.id},matched_user_id.eq.${currentUser.id}`)
+                    .order('created_at', { ascending: false });
+                if (invError) throw invError;
+                myTrades = involved || [];
+
+                // Cache profiles for ad owners
+                const userIds = [...new Set(allTrades.map(t => t.user_id))];
+                const counterpartyIds = [];
+                for (const trade of myTrades) {
+                    const otherId = trade.user_id === currentUser.id ? trade.matched_user_id : trade.user_id;
+                    if (otherId) counterpartyIds.push(otherId);
+                }
+                const allUserIds = [...new Set([...userIds, ...counterpartyIds])];
+                if (allUserIds.length) {
+                    const { data: profiles } = await supabaseClient
+                        .from('profiles')
+                        .select('id, first_name, merchant, completed_trades_count')
+                        .in('id', allUserIds);
+                    if (profiles) {
+                        profiles.forEach(p => { userCache[p.id] = p; });
+                    }
+                }
+            } catch (err) {
+                console.error('Load data error:', err);
+            }
+        }
+
+        async function applyFilters() { renderTab(); }
+
+        function renderTab() {
+            const container = document.getElementById('tab-content');
+            if (!container) return;
+
+            if (currentTab === 'buy') {
+                const asset = document.getElementById('filter-asset')?.value || 'USDT';
+                const minAmount = parseFloat(document.getElementById('filter-amount')?.value) || 0;
+                const payment = document.getElementById('filter-payment')?.value || '';
+
+                let ads = allTrades.filter(t => t.type === 'sell');
+                if (asset) ads = ads.filter(t => t.asset_symbol === asset);
+                if (payment) ads = ads.filter(t => t.payment_method === payment);
+                if (minAmount > 0) ads = ads.filter(t => parseFloat(t.amount) >= minAmount);
+
+                if (ads.length === 0) {
+                    container.innerHTML = `<div class="empty-state">No buy offers found.<br><button class="btn-primary" onclick="switchTab('ads')" style="margin-top:12px;">Create an ad</button></div>`;
+                    return;
+                }
+
+                let html = '';
+                ads.forEach(ad => {
+                    const owner = userCache[ad.user_id] || { first_name: 'User', merchant: false, completed_trades_count: 0 };
+                    const name = owner.first_name || 'User';
+                    const merchant = owner.merchant ? '⭐' : '';
+                    const tradesCount = owner.completed_trades_count || 0;
+                    const completion = tradesCount > 0 ? Math.min(99, Math.floor((tradesCount / (tradesCount+1)) * 100)) : 85;
+                    const priceNgn = (parseFloat(ad.price) * 1550).toFixed(2);
+                    html += `
+                        <div class="order-card">
+                            <div class="merchant-info">
+                                <div class="merchant-avatar">${name.charAt(0).toUpperCase()}</div>
+                                <div>
+                                    <div class="merchant-name">${name} ${merchant}</div>
+                                    <div class="merchant-stats">${tradesCount} orders (${completion}%)</div>
+                                </div>
+                            </div>
+                            <div class="order-price">₦${priceNgn}</div>
+                            <div>
+                                <div class="order-limits">Limits: ${parseFloat(ad.amount).toFixed(2)} - ${(parseFloat(ad.amount)*1.5).toFixed(2)} NGN</div>
+                                <div class="order-amount">Amount: ${ad.amount} ${ad.asset_symbol}</div>
+                            </div>
+                            <div class="payment-method">📋 ${ad.payment_method}</div>
+                            ${currentProfile.kyc_status === 'verified' && ad.user_id !== currentUser.id ? `<button class="action-btn" onclick="showTradeConfirm('${ad.id}')">Buy</button>` : (ad.user_id === currentUser.id ? '<span class="status-badge status-open">Your ad</span>' : '')}
+                        </div>
+                    `;
+                });
+                container.innerHTML = html;
+            }
+            else if (currentTab === 'sell') {
+                const asset = document.getElementById('filter-asset')?.value || 'USDT';
+                const minAmount = parseFloat(document.getElementById('filter-amount')?.value) || 0;
+                const payment = document.getElementById('filter-payment')?.value || '';
+
+                let ads = allTrades.filter(t => t.type === 'buy');
+                if (asset) ads = ads.filter(t => t.asset_symbol === asset);
+                if (payment) ads = ads.filter(t => t.payment_method === payment);
+                if (minAmount > 0) ads = ads.filter(t => parseFloat(t.amount) >= minAmount);
+
+                if (ads.length === 0) {
+                    container.innerHTML = `<div class="empty-state">No sell offers found.</div>`;
+                    return;
+                }
+
+                let html = '';
+                ads.forEach(ad => {
+                    const owner = userCache[ad.user_id] || { first_name: 'User', merchant: false, completed_trades_count: 0 };
+                    const name = owner.first_name || 'User';
+                    const merchant = owner.merchant ? '⭐' : '';
+                    const tradesCount = owner.completed_trades_count || 0;
+                    const completion = tradesCount > 0 ? Math.min(99, Math.floor((tradesCount / (tradesCount+1)) * 100)) : 85;
+                    const priceNgn = (parseFloat(ad.price) * 1550).toFixed(2);
+                    html += `
+                        <div class="order-card">
+                            <div class="merchant-info">
+                                <div class="merchant-avatar">${name.charAt(0).toUpperCase()}</div>
+                                <div>
+                                    <div class="merchant-name">${name} ${merchant}</div>
+                                    <div class="merchant-stats">${tradesCount} orders (${completion}%)</div>
+                                </div>
+                            </div>
+                            <div class="order-price">₦${priceNgn}</div>
+                            <div>
+                                <div class="order-limits">Limits: ${parseFloat(ad.amount).toFixed(2)} - ${(parseFloat(ad.amount)*1.5).toFixed(2)} NGN</div>
+                                <div class="order-amount">Amount: ${ad.amount} ${ad.asset_symbol}</div>
+                            </div>
+                            <div class="payment-method">📋 ${ad.payment_method}</div>
+                            ${currentProfile.kyc_status === 'verified' && ad.user_id !== currentUser.id ? `<button class="action-btn" onclick="showTradeConfirm('${ad.id}')">Sell</button>` : (ad.user_id === currentUser.id ? '<span class="status-badge status-open">Your ad</span>' : '')}
+                        </div>
+                    `;
+                });
+                container.innerHTML = html;
+            }
+            else if (currentTab === 'orders') {
+                if (myTrades.length === 0) {
+                    container.innerHTML = `<div class="empty-state">No orders yet. <button class="btn-primary" onclick="switchTab('ads')" style="margin-top:12px;">Create an ad</button></div>`;
+                    return;
+                }
+                let html = `<div style="text-align:right; margin-bottom:12px;"><button class="btn-primary" onclick="refreshOrders()">⟳ Refresh</button></div>`;
+                for (const trade of myTrades) {
+                    const isMaker = trade.user_id === currentUser.id;
+                    const otherId = isMaker ? trade.matched_user_id : trade.user_id;
+                    let otherName = 'Unknown';
+                    if (otherId && userCache[otherId]) otherName = userCache[otherId].first_name || 'User';
+                    else if (otherId) otherName = 'User';
+                    const statusClass = `status-${trade.status}`;
+                    let role = isMaker ? (trade.type === 'sell' ? 'Seller' : 'Buyer') : (trade.type === 'sell' ? 'Buyer' : 'Seller');
+                    let actions = '';
+                    if (trade.status === 'matched' && trade.user_id === currentUser.id) {
+                        actions = `<button class="action-btn small" onclick="updateTradeStatus('${trade.id}', 'escrowed')">Escrow (Simulate)</button>`;
+                    }
+                    if (trade.status === 'escrowed' && trade.matched_user_id === currentUser.id) {
+                        actions = `<button class="action-btn small" onclick="updateTradeStatus('${trade.id}', 'paid')">I've Paid</button>`;
+                    }
+                    if (trade.status === 'paid' && trade.user_id === currentUser.id) {
+                        actions = `<button class="action-btn small" onclick="updateTradeStatus('${trade.id}', 'completed')">Release Funds</button>`;
+                    }
+                    if (['matched', 'escrowed', 'paid'].includes(trade.status)) {
+                        actions += `<button class="action-btn small" style="background:#f97387; margin-left:6px;" onclick="updateTradeStatus('${trade.id}', 'disputed')">Dispute</button>`;
+                    }
+                    if (trade.status === 'open' && trade.user_id === currentUser.id) {
+                        actions = `<button class="action-btn small" onclick="cancelAd('${trade.id}')">Cancel Ad</button>`;
+                    }
+                    html += `
+                        <div class="order-card">
+                            <div><span class="status-badge ${statusClass}">${trade.status.toUpperCase()}</span> <strong>${role}</strong></div>
+                            <div><strong>${trade.type.toUpperCase()} ${trade.amount} ${trade.asset_symbol}</strong> @ ₦${(trade.price * 1550).toFixed(2)}</div>
+                            <div>Payment: ${trade.payment_method}</div>
+                            <div>Counterparty: ${otherName}</div>
+                            <div>${actions}</div>
+                        </div>
+                    `;
+                }
+                container.innerHTML = html;
+            }
+            else if (currentTab === 'ads') {
+                if (currentProfile.kyc_status !== 'verified') {
+                    container.innerHTML = `<div class="kyc-warning">Complete KYC to create ads.</div>`;
+                    return;
+                }
+                container.innerHTML = `
+                    <div class="create-form">
+                        <h3>Create New Ad</h3>
+                        <select id="ad-type"><option value="sell">Sell</option><option value="buy">Buy</option></select>
+                        <select id="ad-coin"><option value="USDT">USDT</option><option value="BTC">BTC</option><option value="ETH">ETH</option></select>
+                        <input type="number" id="ad-amount" placeholder="Amount (crypto)">
+                        <input type="number" id="ad-price" placeholder="Price per coin (USD)">
+                        <select id="ad-payment"><option value="Bank Transfer">Bank Transfer</option><option value="Opay">Opay</option><option value="PalmPay">PalmPay</option></select>
+                        <button class="btn-primary" onclick="createAd()" style="width:100%;">Post Ad</button>
+                    </div>
+                `;
+            }
+        }
+
+        function showTradeConfirm(adId) {
+            const ad = allTrades.find(t => t.id === adId);
+            if (!ad) return;
+            pendingAdId = adId;
+            const details = `You are about to ${ad.type === 'sell' ? 'buy' : 'sell'} ${ad.amount} ${ad.asset_symbol} at ₦${(ad.price * 1550).toFixed(2)}.`;
+            document.getElementById('confirm-details').innerText = details;
+            document.getElementById('confirm-modal').style.display = 'flex';
+            document.getElementById('confirm-yes').onclick = async () => {
+                closeConfirmModal();
+                await initiateTrade(adId);
+            };
+        }
+
+        async function initiateTrade(adId) {
+            if (currentProfile.kyc_status !== 'verified') {
+                alert('Please complete KYC verification first.');
+                return;
+            }
+            const ad = allTrades.find(t => t.id === adId);
+            if (!ad) { alert('Ad not found'); return; }
+            if (ad.user_id === currentUser.id) { alert('You cannot trade with your own ad.'); return; }
+
+            const { error } = await supabaseClient
+                .from('p2p_trades')
+                .update({ matched_user_id: currentUser.id, status: 'matched' })
+                .eq('id', adId);
+            if (error) {
+                alert('Failed to initiate trade: ' + error.message);
+                return;
+            }
+            alert('Trade initiated! Check "My Orders" for status.');
+            await loadData();
+            switchTab('orders');
+        }
+
+        async function updateTradeStatus(tradeId, newStatus) {
+            const { error } = await supabaseClient
+                .from('p2p_trades')
+                .update({ status: newStatus })
+                .eq('id', tradeId);
+            if (error) { alert('Error: ' + error.message); return; }
+            if (newStatus === 'completed') {
+                const trade = myTrades.find(t => t.id === tradeId);
+                if (trade) {
+                    for (const uid of [trade.user_id, trade.matched_user_id]) {
+                        if (!uid) continue;
+                        const { data: p } = await supabaseClient
+                            .from('profiles')
+                            .select('completed_trades_count')
+                            .eq('id', uid)
+                            .single();
+                        const newCount = (p?.completed_trades_count || 0) + 1;
+                        await supabaseClient
+                            .from('profiles')
+                            .update({ completed_trades_count: newCount, merchant: newCount >= 5 })
+                            .eq('id', uid);
+                        if (uid === currentUser.id) currentProfile.completed_trades_count = newCount;
+                    }
+                    alert('Trade completed! Funds released. Thank you.');
+                } else { alert('Trade completed.'); }
+            } else if (newStatus === 'paid') {
+                alert('Payment marked as sent. Waiting for seller to release funds.');
+            } else if (newStatus === 'escrowed') {
+                alert('Escrow simulation: funds are now held by the platform until both parties confirm.');
+            } else if (newStatus === 'disputed') {
+                alert('Dispute raised. An admin will review the case.');
+            }
+            await loadData();
+            renderTab();
+        }
+
+        async function cancelAd(adId) {
+            if (!confirm('Cancel this ad? It will be removed from listings.')) return;
+            const { error } = await supabaseClient
+                .from('p2p_trades')
+                .update({ status: 'cancelled' })
+                .eq('id', adId);
+            if (error) { alert('Error: ' + error.message); return; }
+            await loadData();
+            renderTab();
+        }
+
+        async function createAd() {
+            const type = document.getElementById('ad-type').value;
+            const symbol = document.getElementById('ad-coin').value;
+            const amount = parseFloat(document.getElementById('ad-amount').value);
+            const price = parseFloat(document.getElementById('ad-price').value);
+            const payment = document.getElementById('ad-payment').value;
+            if (!amount || !price || amount <= 0 || price <= 0) {
+                alert('Enter valid amount and price.');
+                return;
+            }
+            const total = amount * price;
+            const { error } = await supabaseClient.from('p2p_trades').insert({
+                user_id: currentUser.id,
+                type: type,
+                asset_symbol: symbol,
+                amount: amount,
+                price: price,
+                total: total,
+                payment_method: payment,
+                status: 'open'
+            });
+            if (error) { alert('Failed to create ad: ' + error.message); return; }
+            alert('Ad created successfully!');
+            await loadData();
+            switchTab(type === 'sell' ? 'buy' : 'sell');
+        }
+
+        function switchTab(tab) {
+            currentTab = tab;
+            document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+            const activeBtn = document.querySelector(`[data-tab="${tab}"]`);
+            if (activeBtn) activeBtn.classList.add('active');
+            const filterBar = document.getElementById('filter-bar');
+            if (filterBar) filterBar.style.display = (tab === 'buy' || tab === 'sell') ? 'flex' : 'none';
+            renderTab();
+        }
+
+        async function refreshOrders() {
+            await loadData();
+            renderTab();
+        }
+
+        function logout() {
+            supabaseClient.auth.signOut().then(() => window.location.href = './pl.html');
+        }
+
+        document.addEventListener('DOMContentLoaded', () => {
+            document.querySelectorAll('.tab').forEach(btn => {
+                btn.addEventListener('click', () => switchTab(btn.getAttribute('data-tab')));
+            });
+            init();
+        });
+    </script>
+</body>
+</html>

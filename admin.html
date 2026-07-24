@@ -1,0 +1,967 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <title>EXNYA | Admin</title>
+    <link
+        href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600&family=Sora:wght@400;600;700&family=JetBrains+Mono:wght@400;500&display=swap"
+        rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <style>
+        :root {
+            --bg-base: #080b0f;
+            --bg-elevated: #0d1117;
+            --brand-yellow: #fcd535;
+            --text-primary: #e6e9ef;
+            --text-secondary: #5e6a7a;
+            --text-muted: #3a4554;
+            --border-light: #1e2733;
+            --trade-green: #0ecb81;
+            --trade-red: #f6465d;
+            --sidebar-width: 240px;
+            --sidebar-collapsed-width: 64px;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            background: var(--bg-base);
+            color: var(--text-primary);
+            display: flex;
+            min-height: 100vh;
+            font-family: 'DM Sans', sans-serif;
+            font-size: 14px;
+        }
+
+        #particle-canvas {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 0;
+            pointer-events: none;
+            opacity: 0.45;
+        }
+
+        .app-container {
+            position: relative;
+            z-index: 1;
+            display: flex;
+            width: 100%;
+        }
+
+        .sidebar {
+            width: var(--sidebar-width);
+            background: var(--bg-elevated);
+            border-right: 1px solid var(--border-light);
+            display: flex;
+            flex-direction: column;
+            transition: width 0.3s ease, transform 0.3s ease;
+            overflow: hidden;
+            white-space: nowrap;
+            flex-shrink: 0;
+        }
+
+        .sidebar.collapsed {
+            width: var(--sidebar-collapsed-width);
+        }
+
+        .sidebar.collapsed .sidebar-nav a {
+            padding: 12px 0;
+            justify-content: center;
+            gap: 0;
+        }
+
+        .sidebar.collapsed .sidebar-nav a .nav-text {
+            display: none;
+        }
+
+        .sidebar.collapsed .sidebar-nav a .nav-icon {
+            margin: 0 auto;
+        }
+
+        .sidebar-toggle {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 100%;
+            padding: 22px 0 18px;
+            cursor: pointer;
+            color: var(--text-muted);
+            border-bottom: 1px solid var(--border-light);
+            transition: color 0.2s;
+        }
+
+        .sidebar-toggle svg {
+            width: 18px;
+            height: 18px;
+            stroke: currentColor;
+            fill: none;
+            stroke-width: 1.8;
+        }
+
+        .sidebar-toggle:hover {
+            color: var(--brand-yellow);
+        }
+
+        .sidebar-nav {
+            flex: 1;
+            padding: 16px 10px;
+            display: flex;
+            flex-direction: column;
+            gap: 2px;
+        }
+
+        .sidebar-nav a {
+            display: flex;
+            align-items: center;
+            gap: 11px;
+            padding: 10px 14px;
+            border-radius: 8px;
+            color: var(--text-secondary);
+            text-decoration: none;
+            font-size: 13.5px;
+            font-weight: 500;
+            transition: background 0.2s, color 0.2s;
+        }
+
+        .sidebar-nav a:hover {
+            background: rgba(252, 213, 53, 0.08);
+            color: var(--brand-yellow);
+        }
+
+        .sidebar-nav a.active {
+            background: rgba(252, 213, 53, 0.08);
+            color: var(--brand-yellow);
+        }
+
+        .sidebar-nav a .nav-icon {
+            display: flex;
+            align-items: center;
+            flex-shrink: 0;
+        }
+
+        .sidebar-footer {
+            padding: 12px 10px;
+            border-top: 1px solid var(--border-light);
+        }
+
+        .mobile-toggle {
+            display: none;
+            position: fixed;
+            top: 14px;
+            left: 14px;
+            z-index: 110;
+            width: 38px;
+            height: 38px;
+            background: var(--bg-elevated);
+            border: 1px solid var(--border-light);
+            border-radius: 7px;
+            cursor: pointer;
+            align-items: center;
+            justify-content: center;
+            color: var(--text-secondary);
+            transition: color 0.2s, border-color 0.2s;
+        }
+
+        .mobile-toggle:hover {
+            color: var(--brand-yellow);
+            border-color: var(--brand-yellow);
+        }
+
+        @media (max-width:768px) {
+            .sidebar {
+                position: fixed;
+                left: 0;
+                top: 0;
+                bottom: 0;
+                z-index: 100;
+                box-shadow: 8px 0 32px rgba(0, 0, 0, 0.6);
+                transform: translateX(-100%);
+                transition: transform 0.3s ease;
+            }
+
+            .sidebar.open {
+                transform: translateX(0);
+            }
+
+            .sidebar.collapsed {
+                width: 240px;
+                transform: translateX(-100%);
+            }
+
+            .mobile-toggle {
+                display: flex;
+            }
+        }
+
+        .main-content {
+            flex: 1;
+            padding: 28px 32px;
+            overflow-y: auto;
+            max-width: 1200px;
+        }
+
+        @media (max-width:768px) {
+            .main-content {
+                padding: 20px 16px;
+                margin-top: 50px;
+            }
+        }
+
+        .top-bar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 12px;
+            margin-bottom: 24px;
+        }
+
+        .top-logo {
+            height: 30px;
+        }
+
+        .user-info-row {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .avatar {
+            width: 40px;
+            height: 40px;
+            border-radius: 10px;
+            background: linear-gradient(135deg, var(--brand-yellow), #c9920a);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 700;
+            color: #000;
+        }
+
+        .logout-btn {
+            background: transparent;
+            border: 1px solid var(--border-light);
+            color: var(--text-secondary);
+            padding: 6px 14px;
+            border-radius: 7px;
+            cursor: pointer;
+        }
+
+        .card {
+            background: var(--bg-elevated);
+            border-radius: 12px;
+            padding: 18px;
+            margin-bottom: 16px;
+        }
+
+        .card h2 {
+            margin-bottom: 16px;
+            font-size: 16px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .refresh-btn {
+            background: transparent;
+            border: 1px solid var(--border-light);
+            color: var(--brand-yellow);
+            padding: 4px 12px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 12px;
+        }
+
+        .table-wrapper {
+            overflow-x: auto;
+        }
+
+        table {
+            width: 100%;
+            min-width: 600px;
+            border-collapse: collapse;
+        }
+
+        th,
+        td {
+            padding: 10px 8px;
+            text-align: left;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .btn {
+            padding: 4px 10px;
+            border-radius: 6px;
+            font-size: 11px;
+            font-weight: 600;
+            cursor: pointer;
+            border: none;
+            margin: 2px;
+        }
+
+        .btn-primary {
+            background: var(--brand-yellow);
+            color: #000;
+        }
+
+        .btn-danger {
+            background: var(--trade-red);
+            color: #fff;
+        }
+
+        .btn-success {
+            background: var(--trade-green);
+            color: #fff;
+        }
+
+        .btn-outline {
+            background: transparent;
+            border: 1px solid var(--border-light);
+            color: var(--text-secondary);
+        }
+
+        .status-badge {
+            padding: 2px 8px;
+            border-radius: 12px;
+            font-size: 11px;
+        }
+
+        .status-pending {
+            background: rgba(252, 213, 53, 0.15);
+            color: var(--brand-yellow);
+        }
+
+        .status-verified {
+            background: rgba(14, 203, 129, 0.15);
+            color: var(--trade-green);
+        }
+
+        .status-rejected {
+            background: rgba(246, 70, 93, 0.15);
+            color: var(--trade-red);
+        }
+
+        .toast {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            background: var(--bg-elevated);
+            border-left: 4px solid var(--trade-green);
+            padding: 12px 20px;
+            border-radius: 8px;
+            z-index: 2000;
+            display: none;
+            max-width: 90%;
+            word-break: break-word;
+        }
+
+        .error-banner {
+            background: rgba(246, 70, 93, 0.2);
+            border: 1px solid var(--trade-red);
+            border-radius: 8px;
+            padding: 12px;
+            margin-bottom: 16px;
+            color: var(--trade-red);
+        }
+
+        .tabs {
+            display: flex;
+            gap: 8px;
+            border-bottom: 1px solid var(--border-light);
+            margin-bottom: 16px;
+            flex-wrap: wrap;
+        }
+
+        .tab {
+            background: transparent;
+            border: none;
+            padding: 8px 16px;
+            font-weight: 600;
+            color: var(--text-secondary);
+            cursor: pointer;
+            transition: 0.2s;
+        }
+
+        .tab.active {
+            color: var(--brand-yellow);
+            border-bottom: 2px solid var(--brand-yellow);
+        }
+
+        .tab-content {
+            display: block;
+        }
+
+        .tab-content.hidden {
+            display: none;
+        }
+
+        .escrow-addr {
+            font-family: monospace;
+            font-size: 11px;
+            color: var(--text-secondary);
+        }
+    </style>
+</head>
+
+<body>
+    <canvas id="particle-canvas"></canvas>
+    <div class="app-container">
+        <aside class="sidebar" id="sidebar">
+            <div class="sidebar-toggle" onclick="toggleSidebar()">
+                <svg viewBox="0 0 24 24">
+                    <line x1="3" y1="6" x2="21" y2="6" />
+                    <line x1="3" y1="12" x2="21" y2="12" />
+                    <line x1="3" y1="18" x2="21" y2="18" />
+                </svg>
+            </div>
+            <nav class="sidebar-nav">
+                <a href="./profile.html">
+                    <span class="nav-icon"><svg viewBox="0 0 24 24" width="20" height="20" fill="none"
+                            stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                            <rect x="3" y="3" width="7" height="7" rx="1" />
+                            <rect x="14" y="3" width="7" height="7" rx="1" />
+                            <rect x="3" y="14" width="7" height="7" rx="1" />
+                            <rect x="14" y="14" width="7" height="7" rx="1" />
+                        </svg></span>
+                    <span class="nav-text">Overview</span>
+                </a>
+                <a href="./wallet.html">
+                    <span class="nav-icon"><svg viewBox="0 0 24 24" width="20" height="20" fill="none"
+                            stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                            <rect x="2" y="4" width="20" height="16" rx="2" />
+                            <path d="M12 9v4M10 11h4" />
+                        </svg></span>
+                    <span class="nav-text">Wallet</span>
+                </a>
+                <a href="./markets.html">
+                    <span class="nav-icon"><svg viewBox="0 0 24 24" width="20" height="20" fill="none"
+                            stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                            <circle cx="12" cy="12" r="10" />
+                            <line x1="2" y1="12" x2="22" y2="12" />
+                            <path
+                                d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z" />
+                        </svg></span>
+                    <span class="nav-text">Markets</span>
+                </a>
+                <a href="./live-portfolio.html">
+                    <span class="nav-icon"><svg viewBox="0 0 24 24" width="20" height="20" fill="none"
+                            stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                            <polyline points="22 7 13.5 15.5 8.5 10.5 2 17" />
+                            <polyline points="16 7 22 7 22 13" />
+                        </svg></span>
+                    <span class="nav-text">Live Portfolio</span>
+                </a>
+                <a href="./swap.html">
+                    <span class="nav-icon"><svg viewBox="0 0 24 24" width="20" height="20" fill="none"
+                            stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                            <polyline points="17 1 21 5 17 9" />
+                            <path d="M3 11V9a4 4 0 0 1 4-4h14" />
+                            <polyline points="7 23 3 19 7 15" />
+                            <path d="M21 13v2a4 4 0 0 1-4 4H3" />
+                        </svg></span>
+                    <span class="nav-text">Swap</span>
+                </a>
+                <a href="./security.html">
+                    <span class="nav-icon"><svg viewBox="0 0 24 24" width="20" height="20" fill="none"
+                            stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                            <rect x="3" y="11" width="18" height="11" rx="2" ry="2" />
+                            <path d="M7 11V7a5 5 0 0 1 10 0v4" />
+                        </svg></span>
+                    <span class="nav-text">Security</span>
+                </a>
+                <a href="./p2p.html">
+                    <span class="nav-icon"><svg viewBox="0 0 24 24" width="20" height="20" fill="none"
+                            stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M16 17l-4 4-4-4M12 3v18" />
+                        </svg></span>
+                    <span class="nav-text">P2P</span>
+                </a>
+                <a href="#" class="active">
+                    <span class="nav-icon"><svg viewBox="0 0 24 24" width="20" height="20" fill="none"
+                            stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                            <path
+                                d="M12 2v4M12 22v-4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M22 12h-4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83" />
+                        </svg></span>
+                    <span class="nav-text">Admin</span>
+                </a>
+                <a href="./settings.html">
+                    <span class="nav-icon"><svg viewBox="0 0 24 24" width="20" height="20" fill="none"
+                            stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                            <circle cx="12" cy="12" r="3" />
+                            <path
+                                d="M12 1v4M12 19v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M1 12h4M19 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83" />
+                        </svg></span>
+                    <span class="nav-text">Settings</span>
+                </a>
+            </nav>
+            <div class="sidebar-footer"></div>
+        </aside>
+        <div class="mobile-toggle" id="mobile-toggle" onclick="toggleSidebar()">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                <line x1="3" y1="6" x2="21" y2="6" />
+                <line x1="3" y1="12" x2="21" y2="12" />
+                <line x1="3" y1="18" x2="21" y2="18" />
+            </svg>
+        </div>
+
+        <main class="main-content">
+            <div class="top-bar">
+                <img class="top-logo" src="https://placehold.co/120x40?text=EXNYA" alt="EXNYA">
+                <div class="user-info-row">
+                    <div class="avatar" id="user-initials">A</div>
+                    <div class="user-text">
+                        <div class="profile-name" id="user-fullname">Admin</div>
+                        <div class="user-email" id="user-email-display">--</div>
+                    </div>
+                </div>
+                <button class="logout-btn" onclick="logout()">Sign Out</button>
+            </div>
+            <div id="error-container"></div>
+
+            <div class="tabs" id="admin-tabs">
+                <button class="tab active" data-tab="disputes">Disputes</button>
+                <button class="tab" data-tab="kyc">KYC Queue</button>
+                <button class="tab" data-tab="assets">User Assets</button>
+            </div>
+
+            <div id="tab-disputes" class="tab-content">
+                <div class="card">
+                    <h2>Disputed Trades <button class="refresh-btn" onclick="loadDisputes()">⟳ Refresh</button></h2>
+                    <div class="table-wrapper">
+                        <div id="disputes-content">Loading...</div>
+                    </div>
+                </div>
+            </div>
+
+            <div id="tab-kyc" class="tab-content hidden">
+                <div class="card">
+                    <h2>KYC Verification Queue <button class="refresh-btn" onclick="loadKYCQueue()">⟳ Refresh</button>
+                    </h2>
+                    <div class="table-wrapper">
+                        <div id="kyc-queue">Loading...</div>
+                    </div>
+                </div>
+            </div>
+
+            <div id="tab-assets" class="tab-content hidden">
+                <div class="card">
+                    <h2>User Asset Management <button class="refresh-btn" onclick="loadAdminPanel()">⟳ Refresh</button>
+                    </h2>
+                    <div class="table-wrapper">
+                        <div id="admin-content">Loading...</div>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+    <div id="toast" class="toast"></div>
+
+    <script>
+        const SUPABASE_URL = 'https://clwgengvcdokdzubdfxd.supabase.co';
+        const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNsd2dlbmd2Y2Rva2R6dWJkZnhkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzc5MTIxNjEsImV4cCI6MjA5MzQ4ODE2MX0.0zgizWWXLIHiKdNUAJ3yKaIaxEKsHoFeEIo8IUAMtHU';
+        const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+        window.supabaseClient = supabaseClient;
+        const EDGE_FUNCTION_URL = `https://clwgengvcdokdzubdfxd.supabase.co/functions/v1/escrow`;
+
+        let currentUser = null;
+        let allUsers = [];
+        let allAssets = [];
+
+        function toggleSidebar() {
+            const sidebar = document.getElementById('sidebar');
+            if (window.innerWidth <= 768) {
+                sidebar.classList.toggle('open');
+            } else {
+                sidebar.classList.toggle('collapsed');
+                localStorage.setItem('sidebarCollapsed', sidebar.classList.contains('collapsed'));
+            }
+        }
+
+        if (window.innerWidth > 768 && localStorage.getItem('sidebarCollapsed') === 'true') {
+            document.getElementById('sidebar').classList.add('collapsed');
+        }
+
+        const canvas = document.getElementById('particle-canvas');
+        const ctx = canvas.getContext('2d');
+        let particles = [];
+
+        function resizeCanvas() {
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+        }
+        resizeCanvas();
+        window.addEventListener('resize', resizeCanvas);
+
+        class Particle {
+            constructor() {
+                this.x = Math.random() * canvas.width;
+                this.y = Math.random() * canvas.height;
+                this.size = Math.random() * 1.5 + 0.3;
+                this.speedX = (Math.random() - 0.5) * 0.4;
+                this.speedY = (Math.random() - 0.5) * 0.4;
+            }
+            update() {
+                this.x += this.speedX;
+                this.y += this.speedY;
+                if (this.x < 0) this.x = canvas.width;
+                if (this.x > canvas.width) this.x = 0;
+                if (this.y < 0) this.y = canvas.height;
+                if (this.y > canvas.height) this.y = 0;
+            }
+            draw() {
+                ctx.beginPath();
+                ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
+                ctx.fillStyle = '#D4AF37';
+                ctx.fill();
+            }
+        }
+
+        for (let i = 0; i < 60; i++) particles.push(new Particle());
+
+        function animate() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            particles.forEach(p => {
+                p.update();
+                p.draw();
+            });
+            requestAnimationFrame(animate);
+        }
+        animate();
+
+        function showToast(msg, isError = false) {
+            const toast = document.getElementById('toast');
+            toast.textContent = msg;
+            toast.style.borderLeftColor = isError ? 'var(--trade-red)' : 'var(--trade-green)';
+            toast.style.display = 'block';
+            setTimeout(() => {
+                toast.style.display = 'none';
+            }, 5000);
+        }
+
+        function showError(msg) {
+            const container = document.getElementById('error-container');
+            container.innerHTML = `<div class="error-banner">❌ ${msg}</div>`;
+            setTimeout(() => {
+                container.innerHTML = '';
+            }, 8000);
+        }
+
+        async function ensureValidSession() {
+            const { data: { session }, error: refreshError } = await supabaseClient.auth.refreshSession();
+            if (refreshError || !session) {
+                console.error('Session refresh failed:', refreshError);
+                window.location.href = './pl.html';
+                return false;
+            }
+            if (session.user && (!currentUser || currentUser.id !== session.user.id)) {
+                currentUser = session.user;
+            }
+            return true;
+        }
+
+        async function checkAdmin() {
+            try {
+                const valid = await ensureValidSession();
+                if (!valid) return;
+
+                const { data: profile, error: profileError } = await supabaseClient
+                    .from('profiles')
+                    .select('is_admin, first_name')
+                    .eq('id', currentUser.id)
+                    .single();
+
+                if (profileError) {
+                    console.error('Profile query error:', profileError);
+                    showError(`Failed to load admin profile: ${profileError.message}`);
+                    document.getElementById('admin-content').innerHTML = '<p style="color:var(--trade-red)">Error loading admin data. Check RLS policies.</p>';
+                    return;
+                }
+
+                if (!profile || profile.is_admin !== true) {
+                    showError('Access denied: You are not an administrator.');
+                    document.getElementById('admin-content').innerHTML = '<p style="color:var(--trade-red)">Access denied. You are not an admin.</p>';
+                    return;
+                }
+
+                document.getElementById('user-fullname').textContent = profile.first_name || 'Admin';
+                document.getElementById('user-initials').textContent = (profile.first_name || 'A')[0].toUpperCase();
+                document.getElementById('user-email-display').textContent = currentUser.email;
+
+                await loadDisputes();
+                await loadKYCQueue();
+                await loadAdminPanel();
+
+                document.querySelectorAll('.tab').forEach(tab => {
+                    tab.addEventListener('click', function () {
+                        const tabId = this.getAttribute('data-tab');
+                        document.querySelectorAll('.tab-content').forEach(div => div.classList.add('hidden'));
+                        document.getElementById(`tab-${tabId}`).classList.remove('hidden');
+                        document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+                        this.classList.add('active');
+                    });
+                });
+            } catch (err) {
+                console.error('Admin check error:', err);
+                showError('Unexpected error: ' + err.message);
+            }
+        }
+
+        async function loadDisputes() {
+            try {
+                const { data: trades, error } = await supabaseClient
+                    .from('p2p_trades')
+                    .select('id, asset_symbol, amount, price, total, status, escrow_address, escrow_chain, created_at, user_id, matched_user_id')
+                    .eq('status', 'disputed')
+                    .order('created_at', { ascending: false });
+
+                if (error) throw error;
+
+                const container = document.getElementById('disputes-content');
+                if (!trades || trades.length === 0) {
+                    container.innerHTML = '<p>No disputed trades.</p>';
+                    return;
+                }
+
+                const userIds = trades.flatMap(t => [t.user_id, t.matched_user_id]).filter(id => id);
+                const { data: users } = await supabaseClient
+                    .from('profiles')
+                    .select('id, first_name')
+                    .in('id', userIds);
+                const userMap = {};
+                if (users) users.forEach(u => userMap[u.id] = u.first_name || 'Unknown');
+
+                let html =
+                    `<table><thead><tr><th>Trade ID</th><th>Asset</th><th>Amount</th><th>Total (USD)</th><th>Seller</th><th>Buyer</th><th>Escrow</th><th>Actions</th></tr></thead><tbody>`;
+                for (const trade of trades) {
+                    const sellerId = trade.user_id;
+                    const buyerId = trade.matched_user_id;
+                    const sellerName = userMap[sellerId] || 'Unknown';
+                    const buyerName = userMap[buyerId] || 'Unknown';
+                    const escrowShort = trade.escrow_address ? trade.escrow_address.slice(0, 10) + '…' : 'N/A';
+                    html += `<tr>
+                        <td>${trade.id.slice(0, 8)}</td>
+                        <td>${trade.asset_symbol}</td>
+                        <td>${trade.amount}</td>
+                        <td>$${Number(trade.total).toFixed(2)}</td>
+                        <td>${sellerName}</td>
+                        <td>${buyerName}</td>
+                        <td class="escrow-addr">${escrowShort}</td>
+                        <td>
+                            <button class="btn btn-success" onclick="resolveDispute('${trade.id}','release')">Release to Buyer</button>
+                            <button class="btn btn-danger" onclick="resolveDispute('${trade.id}','refund')">Refund to Seller</button>
+                        </td>
+                    </tr>`;
+                }
+                html += `</tbody></table>`;
+                container.innerHTML = html;
+            } catch (err) {
+                console.error('loadDisputes error:', err);
+                document.getElementById('disputes-content').innerHTML = `<p style="color:var(--trade-red)">Error loading disputes: ${err.message}</p>`;
+            }
+        }
+
+        async function resolveDispute(tradeId, action) {
+            if (!confirm(`Are you sure you want to ${action} this trade?`)) return;
+            try {
+                const { data: { session } } = await supabaseClient.auth.getSession();
+                const token = session?.access_token;
+                if (!token) throw new Error('No access token');
+
+                const { data: trade } = await supabaseClient
+                    .from('p2p_trades')
+                    .select('escrow_chain')
+                    .eq('id', tradeId)
+                    .single();
+                const chain = trade?.escrow_chain || 'base-sepolia';
+
+                const response = await fetch(`${EDGE_FUNCTION_URL}/${action}`, {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ tradeId, chain }),
+                });
+                const result = await response.json();
+                if (!response.ok) throw new Error(result.error || 'Failed to resolve dispute');
+
+                showToast(`Trade ${action}ed successfully!`);
+                await loadDisputes();
+            } catch (err) {
+                console.error('resolveDispute error:', err);
+                showError('Error: ' + err.message);
+            }
+        }
+
+        async function loadKYCQueue() {
+            try {
+                const { data: pendingUsers, error } = await supabaseClient
+                    .from('profiles')
+                    .select('id, email, kyc_status, kyc_document_url, first_name')
+                    .eq('kyc_status', 'pending');
+                if (error) throw error;
+                const container = document.getElementById('kyc-queue');
+                if (!pendingUsers || pendingUsers.length === 0) {
+                    container.innerHTML = '<p>No pending KYC requests.</p>';
+                    return;
+                }
+                let html = '<table><thead><tr><th>Email</th><th>Document</th><th>Actions</th></tr></thead><tbody>';
+                for (const user of pendingUsers) {
+                    html += `<tr>
+                        <td>${user.email}</td>
+                        <td>${user.kyc_document_url ? `<button class="btn btn-outline" onclick="viewDocument('${user.kyc_document_url}')">View ID</button>` : 'No file'}</td>
+                        <td>
+                            <button class="btn btn-primary" onclick="approveKYC('${user.id}')">Approve</button>
+                            <button class="btn btn-danger" onclick="rejectKYC('${user.id}')">Reject</button>
+                        </td>
+                    </tr>`;
+                }
+                html += `</tbody></table>`;
+                container.innerHTML = html;
+            } catch (err) {
+                console.error('loadKYCQueue error:', err);
+                document.getElementById('kyc-queue').innerHTML = '<p style="color:var(--trade-red)">Error loading queue.</p>';
+            }
+        }
+
+        async function viewDocument(filePath) {
+            if (!filePath) { alert('No document available.'); return; }
+            try {
+                const { data, error } = await supabaseClient.storage
+                    .from('kyc_documents')
+                    .createSignedUrl(filePath, 300);
+                if (error) throw error;
+                window.open(data.signedUrl, '_blank');
+            } catch (err) {
+                alert('Could not generate link: ' + err.message);
+            }
+        }
+
+        async function approveKYC(userId) {
+            if (!confirm('Approve this user\'s KYC?')) return;
+            try {
+                const { error } = await supabaseClient
+                    .from('profiles')
+                    .update({ kyc_status: 'verified' })
+                    .eq('id', userId);
+                if (error) throw error;
+                showToast('KYC approved successfully!');
+                await loadKYCQueue();
+                await loadAdminPanel();
+            } catch (err) {
+                showToast('Error: ' + err.message, true);
+                console.error('Approve error:', err);
+            }
+        }
+
+        async function rejectKYC(userId) {
+            if (!confirm('Reject this user\'s KYC?')) return;
+            try {
+                const { error } = await supabaseClient
+                    .from('profiles')
+                    .update({ kyc_status: 'rejected' })
+                    .eq('id', userId);
+                if (error) throw error;
+                showToast('KYC rejected.');
+                await loadKYCQueue();
+                await loadAdminPanel();
+            } catch (err) {
+                showToast('Error: ' + err.message, true);
+                console.error('Reject error:', err);
+            }
+        }
+
+        async function loadAdminPanel() {
+            try {
+                const { data: users, error: usersError } = await supabaseClient.from('profiles').select('id, email');
+                if (usersError) throw usersError;
+                allUsers = users || [];
+                const { data: assets, error: assetsError } = await supabaseClient.from('user_assets').select('*');
+                if (assetsError) throw assetsError;
+                allAssets = assets || [];
+                renderAdmin();
+            } catch (err) {
+                console.error('loadAdminPanel error:', err);
+                document.getElementById('admin-content').innerHTML = '<p style="color:var(--trade-red)">Failed to load user assets.</p>';
+            }
+        }
+
+        function renderAdmin() {
+            if (!allUsers.length) {
+                document.getElementById('admin-content').innerHTML = '<p>No users found.</p>';
+                return;
+            }
+            let html = '<table><thead><tr><th>Email</th><th>Assets</th><th>Actions</th></tr></thead><tbody>';
+            allUsers.forEach(user => {
+                const userAssets = allAssets.filter(a => a.user_id === user.id);
+                html += `<tr>
+                    <td>${user.email}</td>
+                    <td>${userAssets.map(a => `${a.asset_symbol} (${Number(a.quantity).toFixed(4)})`).join(', ') || 'None'}</td>
+                    <td>
+                        <button class="btn btn-primary" onclick="openAddAsset('${user.id}')">+ Asset</button>
+                        ${userAssets.map(a => `<button class="btn btn-outline" onclick="openEditAsset('${a.id}','${a.asset_symbol}','${Number(a.quantity)}')">Edit ${a.asset_symbol}</button>
+                        <button class="btn btn-danger" onclick="deleteAsset('${a.id}')">Del</button>`).join('')}
+                    </td>
+                </tr>`;
+            });
+            html += `</tbody></table>`;
+            document.getElementById('admin-content').innerHTML = html;
+        }
+
+        function openAddAsset(userId) {
+            const symbol = prompt('Asset symbol (e.g., BTC):');
+            const qty = prompt('Quantity:');
+            if (symbol && qty && !isNaN(qty)) {
+                supabaseClient.from('user_assets').insert({
+                    user_id: userId, asset_symbol: symbol.toUpperCase(),
+                    quantity: parseFloat(qty)
+                })
+                    .then(({ error }) => {
+                        if (error) alert(error.message);
+                        else loadAdminPanel();
+                    });
+            }
+        }
+
+        function openEditAsset(assetId, oldSymbol, oldQty) {
+            const symbol = prompt('Symbol', oldSymbol);
+            const qty = prompt('Quantity', oldQty);
+            if (symbol && qty && !isNaN(qty)) {
+                supabaseClient.from('user_assets').update({ asset_symbol: symbol.toUpperCase(), quantity: parseFloat(qty) })
+                    .eq('id', assetId)
+                    .then(({ error }) => {
+                        if (error) alert(error.message);
+                        else loadAdminPanel();
+                    });
+            }
+        }
+
+        function deleteAsset(assetId) {
+            if (confirm('Delete this asset?')) {
+                supabaseClient.from('user_assets').delete().eq('id', assetId)
+                    .then(({ error }) => {
+                        if (error) alert(error.message);
+                        else loadAdminPanel();
+                    });
+            }
+        }
+
+        function logout() {
+            supabaseClient.auth.signOut().then(() => window.location.href = './pl.html');
+        }
+
+        checkAdmin();
+    </script>
+    <script src="settings.js"></script>
+</body>
+
+</html>

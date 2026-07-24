@@ -1,0 +1,678 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <title>EXNYA | Direct Liquidity & Crypto Exchange</title>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Playfair+Display:wght@600;700&display=swap"
+        rel="stylesheet">
+    <style>
+        :root {
+            --bg-deep: #050505;
+            --bg-panel: rgba(15, 15, 15, 0.85);
+            --gold-primary: #D4AF37;
+            --gold-light: #F9E596;
+            --gold-gradient: linear-gradient(135deg, #F9E596, #D4AF37, #997A15);
+            --text-main: #F4F4F4;
+            --text-muted: #A0A0A0;
+            --glass-border: rgba(212, 175, 55, 0.2);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Inter', sans-serif;
+            scroll-behavior: smooth;
+        }
+
+        body {
+            background: var(--bg-deep);
+            color: var(--text-main);
+            overflow-x: hidden;
+            line-height: 1.7;
+        }
+
+        #particle-canvas {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 0;
+            pointer-events: none;
+        }
+
+        nav {
+            position: fixed;
+            top: 0;
+            width: 100%;
+            padding: 16px 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: rgba(5, 5, 5, 0.9);
+            backdrop-filter: blur(10px);
+            border-bottom: 1px solid var(--glass-border);
+            z-index: 1000;
+        }
+
+        .logo {
+            font-family: 'Playfair Display', serif;
+            font-size: 24px;
+            letter-spacing: 2px;
+            background: var(--gold-gradient);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            font-weight: 700;
+            text-decoration: none;
+        }
+
+        .logo a {
+            text-decoration: none;
+            color: inherit;
+        }
+
+        .nav-links {
+            display: none;
+        }
+
+        @media (min-width: 768px) {
+            .nav-links {
+                display: flex;
+                gap: 20px;
+            }
+
+            .logo {
+                font-size: 28px;
+            }
+
+            nav {
+                padding: 20px 40px;
+            }
+        }
+
+        .nav-links a {
+            color: var(--text-main);
+            text-decoration: none;
+            font-size: 13px;
+            font-weight: 500;
+            text-transform: uppercase;
+            transition: color 0.3s;
+        }
+
+        .nav-links a:hover {
+            color: var(--gold-primary);
+        }
+
+        .content-wrapper {
+            position: relative;
+            z-index: 1;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 100px 16px 60px;
+        }
+
+        section {
+            margin-bottom: 60px;
+        }
+
+        .section-header {
+            font-family: 'Playfair Display', serif;
+            font-size: 2rem;
+            color: var(--gold-primary);
+            margin-bottom: 16px;
+            text-align: center;
+        }
+
+        @media (min-width: 768px) {
+            .section-header {
+                font-size: 3rem;
+            }
+        }
+
+        .section-subtitle {
+            text-align: center;
+            color: var(--text-muted);
+            max-width: 800px;
+            margin: 0 auto 30px;
+            font-size: 1rem;
+        }
+
+        .glass-panel {
+            background: var(--bg-panel);
+            backdrop-filter: blur(12px);
+            border: 1px solid var(--glass-border);
+            border-radius: 20px;
+            padding: 30px 20px;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.5);
+        }
+
+        @media (min-width: 768px) {
+            .glass-panel {
+                padding: 50px;
+            }
+        }
+
+        .grid-2 {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 30px;
+        }
+
+        .grid-3 {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 24px;
+        }
+
+        .grid-4 {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 20px;
+        }
+
+        @media (min-width: 768px) {
+            .grid-2 {
+                grid-template-columns: 1fr 1fr;
+            }
+
+            .grid-3 {
+                grid-template-columns: repeat(3, 1fr);
+            }
+
+            .grid-4 {
+                grid-template-columns: repeat(4, 1fr);
+            }
+        }
+
+        .card {
+            background: rgba(20, 20, 20, 0.6);
+            border: 1px solid var(--glass-border);
+            padding: 20px;
+            border-radius: 16px;
+            transition: transform 0.3s;
+        }
+
+        .card:hover {
+            transform: translateY(-4px);
+            border-color: var(--gold-primary);
+        }
+
+        .card-icon {
+            font-size: 32px;
+            margin-bottom: 16px;
+            color: var(--gold-primary);
+        }
+
+        .card h3 {
+            font-size: 1.3rem;
+            margin-bottom: 12px;
+        }
+
+        .card p {
+            color: var(--text-muted);
+            font-size: 0.9rem;
+        }
+
+        .stat-box {
+            text-align: center;
+            padding: 24px 16px;
+            border-bottom: 1px solid var(--glass-border);
+        }
+
+        .stat-box:last-child {
+            border-bottom: none;
+        }
+
+        @media (min-width: 768px) {
+            .stat-box {
+                border-right: 1px solid var(--glass-border);
+                border-bottom: none;
+            }
+
+            .stat-box:last-child {
+                border-right: none;
+            }
+        }
+
+        .stat-number {
+            font-family: 'Playfair Display', serif;
+            font-size: 2.5rem;
+            background: var(--gold-gradient);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            font-weight: 700;
+            margin-bottom: 8px;
+        }
+
+        .stat-label {
+            color: var(--text-main);
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            font-size: 0.8rem;
+        }
+
+        .step-container {
+            display: flex;
+            flex-direction: column;
+            align-items: flex-start;
+            gap: 16px;
+            margin-bottom: 30px;
+        }
+
+        @media (min-width: 768px) {
+            .step-container {
+                flex-direction: row;
+                align-items: flex-start;
+                gap: 30px;
+            }
+        }
+
+        .step-number {
+            width: 48px;
+            height: 48px;
+            background: var(--gold-gradient);
+            color: #000;
+            border-radius: 50%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-size: 20px;
+            font-weight: 700;
+            flex-shrink: 0;
+            box-shadow: 0 0 20px rgba(212, 175, 55, 0.4);
+        }
+
+        .step-content h3 {
+            font-size: 1.3rem;
+            color: var(--gold-light);
+            margin-bottom: 8px;
+        }
+
+        .step-content p {
+            color: var(--text-muted);
+            font-size: 0.95rem;
+        }
+
+        .faq-item {
+            border-bottom: 1px solid var(--glass-border);
+            padding: 16px 0;
+        }
+
+        .faq-question {
+            font-size: 1.1rem;
+            font-weight: 600;
+            cursor: pointer;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .faq-question:hover {
+            color: var(--gold-primary);
+        }
+
+        .faq-answer {
+            max-height: 0;
+            overflow: hidden;
+            transition: max-height 0.4s ease;
+            color: var(--text-muted);
+            margin-top: 10px;
+            padding-right: 20px;
+        }
+
+        .reveal {
+            opacity: 0;
+            transform: translateY(40px);
+            transition: all 0.8s cubic-bezier(0.25, 1, 0.5, 1);
+        }
+
+        .reveal.active {
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        footer {
+            background: #020202;
+            padding: 30px 20px;
+            text-align: center;
+            border-top: 1px solid var(--glass-border);
+        }
+
+        footer div {
+            font-family: 'Playfair Display', serif;
+            font-size: 20px;
+            color: var(--gold-primary);
+            margin-bottom: 16px;
+        }
+
+        footer p {
+            color: var(--text-muted);
+            font-size: 12px;
+            max-width: 600px;
+            margin: 0 auto 16px;
+        }
+    </style>
+</head>
+
+<body>
+    <canvas id="particle-canvas"></canvas>
+
+    <nav>
+        <div class="logo"><a href="./index.html">EXNYA</a></div>
+        <div class="nav-links">
+            <a href="./index.html">Home</a>
+            <a href="#">About</a>
+            <a href="./terms.html">Privacy</a>
+        </div>
+    </nav>
+
+    <div class="content-wrapper">
+        <section id="about" class="reveal">
+            <div class="glass-panel" style="text-align:center;">
+                <h1
+                    style="font-family:'Playfair Display',serif;font-size:2.5rem;color:var(--gold-primary);margin-bottom:16px;">
+                    Direct Liquidity.<br>Instant Settlement.</h1>
+                <p style="font-size:1rem;color:var(--text-muted);max-width:850px;margin:0 auto;line-height:1.6;">
+                    Welcome to EXNYA, the ultimate direct-to-client cryptocurrency exchange. We eliminate the
+                    complexities of custodial wallets and traditional trading screens. You hold your keys; we
+                    provide the liquidity.</p>
+            </div>
+        </section>
+
+        <section id="services" class="reveal">
+            <h2 class="section-header">Our Bespoke Services</h2>
+            <p class="section-subtitle">We specialize in fast, secure, and direct settlements. No internal
+                wallets, no holding periods—just your assets, delivered how you want them.</p>
+            <div class="grid-3">
+                <div class="card">
+                    <div class="card-icon">💵</div>
+                    <h3>Sell Crypto for Cash</h3>
+                    <p>Liquidate your USDT, Bitcoin, or authorized altcoins instantly. Transfer your assets to
+                        our secure OTC address and receive your payout directly in physical cash, domestic bank
+                        transfer, or international wire.</p>
+                </div>
+                <div class="card">
+                    <div class="card-icon">🪙</div>
+                    <h3>Buy Crypto Directly</h3>
+                    <p>Acquire digital assets without leaving them on a centralized exchange. Pay us via bank
+                        transfer or approved fiat methods, and we will send the cryptocurrency directly to your
+                        personal hardware or software wallet.</p>
+                </div>
+                <div class="card">
+                    <div class="card-icon">🔄</div>
+                    <h3>Instant Swapping</h3>
+                    <p>Need to switch positions fast? Use our swapping service to exchange one cryptocurrency
+                        for another. Send us Asset A, provide your receiving address, and we deliver Asset B at
+                        highly competitive market rates.</p>
+                </div>
+                <div class="card">
+                    <div class="card-icon">🤝</div>
+                    <h3>VIP OTC Block Trades</h3>
+                    <p>Designed for institutions and high-net-worth individuals. Execute massive buy or sell
+                        orders (over $100k) entirely off-market to guarantee zero slippage and absolute privacy.
+                    </p>
+                </div>
+                <div class="card">
+                    <div class="card-icon">🌍</div>
+                    <h3>Multi-Currency Support</h3>
+                    <p>We bridge the gap between global economies. EXNYA facilitates payouts and purchases
+                        across multiple fiat currencies, allowing you to settle transactions in the currency
+                        that makes the most sense for your business.</p>
+                </div>
+                <div class="card">
+                    <div class="card-icon">👔</div>
+                    <h3>White-Glove Support</h3>
+                    <p>Say goodbye to automated chatbots. Every transaction on EXNYA is overseen by a dedicated
+                        account manager ensuring your funds or crypto arrive precisely when and where they are
+                        supposed to.</p>
+                </div>
+            </div>
+        </section>
+
+        <section id="accomplishments" class="reveal">
+            <div class="glass-panel">
+                <h2 class="section-header">A Track Record of Trust</h2>
+                <p class="section-subtitle">In a non-custodial model, trust is built on successful execution.
+                    Our numbers reflect our commitment to flawless settlements.</p>
+                <div class="grid-4"
+                    style="background:rgba(0,0,0,0.4); border-radius:15px; border:1px solid var(--glass-border);">
+                    <div class="stat-box">
+                        <div class="stat-number">2M+</div>
+                        <div class="stat-label">Successful Swaps</div>
+                    </div>
+                    <div class="stat-box">
+                        <div class="stat-number">$50B+</div>
+                        <div class="stat-label">Fiat Settled</div>
+                    </div>
+                    <div class="stat-box">
+                        <div class="stat-number">&lt;15m</div>
+                        <div class="stat-label">Avg. Payout Time</div>
+                    </div>
+                    <div class="stat-box">
+                        <div class="stat-number">100%</div>
+                        <div class="stat-label">Non-Custodial</div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section id="guide" class="reveal">
+            <h2 class="section-header">How EXNYA Works</h2>
+            <p class="section-subtitle">We don't hold your funds. We simply facilitate the exchange. Here is how
+                you can buy, sell, or swap in 5 easy steps.</p>
+            <div class="glass-panel">
+                <div class="step-container">
+                    <div class="step-number">1</div>
+                    <div class="step-content">
+                        <h3>Initiate Your Request</h3>
+                        <p>Log into your EXNYA account and open a new trade ticket. Tell us exactly what you
+                            want to do: Buy crypto with fiat, sell your crypto for a cash payout, or swap one
+                            asset for another.</p>
+                    </div>
+                </div>
+                <div class="step-container">
+                    <div class="step-number">2</div>
+                    <div class="step-content">
+                        <h3>Lock in Your Rate</h3>
+                        <p>Our system will provide you with a real-time, highly competitive quote based on
+                            current market liquidity. Once you confirm, the rate is locked in for the duration
+                            of the transaction window.</p>
+                    </div>
+                </div>
+                <div class="step-container">
+                    <div class="step-number">3</div>
+                    <div class="step-content">
+                        <h3>Provide Destination Details</h3>
+                        <p>Because we do not use platform wallets, you must tell us where to send your assets.
+                            If you are buying crypto, provide your personal wallet address. If you are selling,
+                            provide your bank details or arrange for a physical cash pickup.</p>
+                    </div>
+                </div>
+                <div class="step-container">
+                    <div class="step-number">4</div>
+                    <div class="step-content">
+                        <h3>Send the Funds / Assets</h3>
+                        <p>Follow the instructions to send your fiat payment to our banking partners, or
+                            transfer your cryptocurrency to the secure, one-time EXNYA receiving address
+                            generated for your specific trade.</p>
+                    </div>
+                </div>
+                <div class="step-container">
+                    <div class="step-number">5</div>
+                    <div class="step-content">
+                        <h3>Receive Instant Settlement</h3>
+                        <p>As soon as we verify the receipt of your funds or the required blockchain
+                            confirmations, we immediately dispatch your payout. No holding periods, no
+                            withdrawal limits—just direct delivery.</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section id="security" class="reveal">
+            <div class="glass-panel"
+                style="background:linear-gradient(180deg,var(--bg-panel) 0%,rgba(30,20,0,0.9) 100%);">
+                <h2 class="section-header">The Ultimate Security: Non-Custodial</h2>
+                <p class="section-subtitle">The safest exchange is the one that doesn't hold your money.</p>
+                <div class="grid-2">
+                    <div>
+                        <h3 style="color:var(--gold-light); margin-bottom:10px;">Zero Custodial Risk</h3>
+                        <p style="color:var(--text-muted); margin-bottom:20px;">Unlike traditional exchanges
+                            that hold your crypto in massive, vulnerable honeypots, EXNYA is purely a settlement
+                            layer. You retain complete control of your private keys right up until the moment of
+                            exchange. We never hold your assets long-term.</p>
+                        <h3 style="color:var(--gold-light); margin-bottom:10px;">Encrypted Communications</h3>
+                        <p style="color:var(--text-muted);">All trade details, bank account information, and
+                            wallet addresses are transmitted via AES-256 encryption. Your personal identity and
+                            financial routing data are shielded from third parties at all times.</p>
+                    </div>
+                    <div>
+                        <h3 style="color:var(--gold-light); margin-bottom:10px;">Stringent AML & KYC</h3>
+                        <p style="color:var(--text-muted); margin-bottom:20px;">While we value your privacy, we
+                            operate strictly within the law. All clients undergo rigorous Know Your Customer
+                            (KYC) and Anti-Money Laundering (AML) checks to ensure that all fiat and crypto
+                            entering our ecosystem is clean, authorized, and safe to transact with.</p>
+                        <h3 style="color:var(--gold-light); margin-bottom:10px;">Wallet Verification</h3>
+                        <p style="color:var(--text-muted);">To prevent fraud and accidental loss of funds, our
+                            systems utilize advanced algorithmic checks to verify that the external wallet
+                            addresses you provide are valid and correspond to the correct blockchain network
+                            before we ever send a payout.</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section id="faq" class="reveal">
+            <h2 class="section-header">Frequently Asked Questions</h2>
+            <div class="glass-panel">
+                <div class="faq-item">
+                    <div class="faq-question" onclick="toggleFaq(this)">Do you provide a wallet to hold my
+                        crypto? <span>+</span></div>
+                    <div class="faq-answer">No. EXNYA is a non-custodial direct exchange. You must have your own
+                        personal wallet (like Trust Wallet, Ledger, Trezor, or MetaMask) to receive crypto when
+                        you buy from us, or to send crypto from when you are selling to us. This ensures you
+                        always remain in control of your funds.</div>
+                </div>
+                <div class="faq-item">
+                    <div class="faq-question" onclick="toggleFaq(this)">How do I receive my cash when I sell my
+                        crypto? <span>+</span></div>
+                    <div class="faq-answer">When initiating a sell order, you will select your preferred payout
+                        method. We offer direct bank wire transfers, local ACH/domestic transfers, and in
+                        certain jurisdictions, authorized physical cash payouts through our premium OTC desks.
+                    </div>
+                </div>
+                <div class="faq-item">
+                    <div class="faq-question" onclick="toggleFaq(this)">How long does a transaction take?
+                        <span>+</span>
+                    </div>
+                    <div class="faq-answer">Crypto-to-crypto swaps are nearly instantaneous once the blockchain
+                        confirms your deposit. For crypto-to-fiat sales, bank transfers are typically dispatched
+                        within 15 to 30 minutes of blockchain confirmation, though actual bank crediting times
+                        may vary depending on your financial institution.</div>
+                </div>
+                <div class="faq-item">
+                    <div class="faq-question" onclick="toggleFaq(this)">Is there a minimum or maximum trade
+                        limit? <span>+</span></div>
+                    <div class="faq-answer">Because we cater to both retail and institutional clients, our
+                        limits are highly flexible. While standard trades have accessible minimums, our
+                        dedicated OTC block trading desk is equipped to handle single transactions upwards of
+                        $1,000,000+ with deep liquidity and zero market slippage.</div>
+                </div>
+            </div>
+        </section>
+    </div>
+
+    <footer>
+        <div>EXNYA</div>
+        <p>Direct liquidity. Instant payouts. You hold the keys.</p>
+        <p>&copy; 2026 EXNYA Digital Assets Exchange. All rights reserved.</p>
+    </footer>
+
+    <script>
+        const canvas = document.getElementById('particle-canvas');
+        const ctx = canvas.getContext('2d');
+        let particles = [];
+
+        function resizeCanvas() {
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+        }
+        resizeCanvas();
+        window.addEventListener('resize', resizeCanvas);
+
+        class Particle {
+            constructor() {
+                this.x = Math.random() * canvas.width;
+                this.y = Math.random() * canvas.height;
+                this.size = Math.random() * 1.5 + 0.5;
+                this.speedX = (Math.random() * 0.4) - 0.2;
+                this.speedY = (Math.random() * 0.4) - 0.2;
+            }
+            update() {
+                this.x += this.speedX;
+                this.y += this.speedY;
+                if (this.x < 0) this.x = canvas.width;
+                if (this.x > canvas.width) this.x = 0;
+                if (this.y < 0) this.y = canvas.height;
+                if (this.y > canvas.height) this.y = 0;
+            }
+            draw() {
+                ctx.beginPath();
+                ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
+                ctx.fillStyle = '#D4AF37';
+                ctx.fill();
+            }
+        }
+
+        for (let i = 0; i < 80; i++) particles.push(new Particle());
+
+        function animate() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            for (let i = 0; i < particles.length; i++) {
+                particles[i].update();
+                particles[i].draw();
+                for (let j = i; j < particles.length; j++) {
+                    const dx = particles[i].x - particles[j].x;
+                    const dy = particles[i].y - particles[j].y;
+                    const distance = Math.sqrt(dx * dx + dy * dy);
+                    if (distance < 120) {
+                        ctx.beginPath();
+                        ctx.strokeStyle = `rgba(212,175,55,${0.12 - distance / 1000})`;
+                        ctx.lineWidth = 0.5;
+                        ctx.moveTo(particles[i].x, particles[i].y);
+                        ctx.lineTo(particles[j].x, particles[j].y);
+                        ctx.stroke();
+                    }
+                }
+            }
+            requestAnimationFrame(animate);
+        }
+        animate();
+
+        const observer = new IntersectionObserver((e) => e.forEach(entry => {
+            if (entry.isIntersecting) entry.target.classList.add('active');
+        }), { threshold: 0.05 });
+        document.querySelectorAll('.reveal').forEach(el => observer.observe(el));
+
+        function toggleFaq(el) {
+            let answer = el.nextElementSibling,
+                icon = el.querySelector('span');
+            if (answer.style.maxHeight) {
+                answer.style.maxHeight = null;
+                icon.innerHTML = '+';
+            } else {
+                document.querySelectorAll('.faq-answer').forEach(a => a.style.maxHeight = null);
+                document.querySelectorAll('.faq-question span').forEach(s => s.innerHTML = '+');
+                answer.style.maxHeight = answer.scrollHeight + "px";
+                icon.innerHTML = '−';
+            }
+        }
+    </script>
+</body>
+
+</html>

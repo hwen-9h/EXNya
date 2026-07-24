@@ -1,0 +1,458 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>EXNYA | Create Account</title>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Playfair+Display:wght@700&display=swap"
+        rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <style>
+        :root {
+            --bg-deep: #050505;
+            --gold-primary: #D4AF37;
+            --gold-gradient: linear-gradient(135deg, #F9E596, #D4AF37, #997A15);
+            --text-main: #F4F4F4;
+            --text-muted: #A0A0A0;
+            --glass-bg: rgba(15, 15, 15, 0.65);
+            --glass-border: rgba(212, 175, 55, 0.25);
+            --input-bg: rgba(255, 255, 255, 0.03);
+            --input-border: rgba(255, 255, 255, 0.1);
+            --btn-text-color: #000;
+            --box-shadow: 0 25px 50px rgba(0, 0, 0, 0.8);
+            --glow: rgba(212, 175, 55, 0.05);
+        }
+
+        body.light-theme {
+            --bg-deep: #f5f5f7;
+            --gold-primary: #b8860b;
+            --gold-gradient: linear-gradient(135deg, #FFD700, #D4AF37, #b8860b);
+            --text-main: #121212;
+            --text-muted: #4a4a4a;
+            --glass-bg: rgba(255, 255, 255, 0.8);
+            --glass-border: rgba(180, 140, 40, 0.35);
+            --input-bg: rgba(0, 0, 0, 0.02);
+            --input-border: rgba(0, 0, 0, 0.15);
+            --btn-text-color: #fff;
+            --box-shadow: 0 25px 50px rgba(0, 0, 0, 0.1);
+            --glow: rgba(212, 175, 55, 0.15);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Inter', sans-serif;
+        }
+
+        body {
+            background: var(--bg-deep);
+            color: var(--text-main);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+            transition: background 0.4s, color 0.4s;
+        }
+
+        #particle-canvas {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 1;
+            pointer-events: none;
+        }
+
+        .theme-toggle {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            z-index: 10;
+            background: var(--glass-bg);
+            backdrop-filter: blur(12px);
+            border: 1px solid var(--glass-border);
+            color: var(--gold-primary);
+            padding: 8px 18px;
+            border-radius: 30px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .theme-toggle:hover {
+            background: var(--gold-primary);
+            color: #000;
+        }
+
+        .signup-wrapper {
+            position: relative;
+            z-index: 2;
+            width: 100%;
+            max-width: 480px;
+            animation: floatIn 0.8s;
+        }
+
+        @keyframes floatIn {
+            0% {
+                opacity: 0;
+                transform: translateY(40px) scale(0.96)
+            }
+
+            100% {
+                opacity: 1;
+                transform: translateY(0) scale(1)
+            }
+        }
+
+        .signup-box {
+            background: var(--glass-bg);
+            backdrop-filter: blur(20px);
+            border: 1px solid var(--glass-border);
+            border-radius: 28px;
+            padding: 40px 35px;
+            box-shadow: var(--box-shadow), 0 0 50px var(--glow);
+            text-align: center;
+        }
+
+        .logo {
+            margin-bottom: 16px;
+        }
+
+        .logo img {
+            height: 45px;
+            width: auto;
+        }
+
+        .dark-logo {
+            display: block;
+        }
+
+        .light-logo {
+            display: none;
+        }
+
+        body.light-theme .dark-logo {
+            display: none;
+        }
+
+        body.light-theme .light-logo {
+            display: block;
+        }
+
+        h2 {
+            font-size: 22px;
+            font-weight: 600;
+            margin-bottom: 28px;
+        }
+
+        .input-row {
+            display: flex;
+            gap: 15px;
+        }
+
+        .input-group {
+            margin-bottom: 18px;
+            text-align: left;
+            flex: 1;
+        }
+
+        .input-group label {
+            display: block;
+            font-size: 13px;
+            color: var(--text-muted);
+            margin-bottom: 6px;
+        }
+
+        .input-group input {
+            width: 100%;
+            background: var(--input-bg);
+            border: 1px solid var(--input-border);
+            border-radius: 12px;
+            padding: 14px 16px;
+            color: var(--text-main);
+            font-size: 15px;
+            outline: none;
+            transition: 0.3s;
+        }
+
+        .input-group input:focus {
+            border-color: var(--gold-primary);
+            box-shadow: 0 0 0 4px rgba(212, 175, 55, 0.1);
+        }
+
+        .terms {
+            display: flex;
+            align-items: flex-start;
+            gap: 10px;
+            color: var(--text-muted);
+            font-size: 12px;
+            text-align: left;
+            margin-bottom: 24px;
+            cursor: pointer;
+            line-height: 1.5;
+        }
+
+        .terms input[type="checkbox"] {
+            appearance: none;
+            min-width: 18px;
+            width: 18px;
+            height: 18px;
+            border: 1px solid var(--gold-primary);
+            border-radius: 5px;
+            background: transparent;
+            cursor: pointer;
+            margin-top: 1px;
+        }
+
+        .terms input[type="checkbox"]:checked {
+            background: var(--gold-primary);
+        }
+
+        .terms input[type="checkbox"]:checked::after {
+            content: '✔';
+            position: absolute;
+            color: #000;
+            font-size: 11px;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            font-weight: bold;
+        }
+
+        .btn-submit {
+            width: 100%;
+            background: var(--gold-gradient);
+            color: var(--btn-text-color);
+            border: none;
+            padding: 16px;
+            border-radius: 14px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            box-shadow: 0 10px 25px rgba(212, 175, 55, 0.3);
+            transition: all 0.3s;
+        }
+
+        .btn-submit:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 20px 40px rgba(212, 175, 55, 0.5);
+        }
+
+        .login-link {
+            display: block;
+            margin-top: 22px;
+            font-size: 14px;
+            color: var(--text-muted);
+        }
+
+        .login-link a {
+            color: var(--gold-primary);
+            text-decoration: none;
+            font-weight: 600;
+        }
+
+        @media (max-width:480px) {
+            .signup-box {
+                padding: 30px 20px;
+            }
+
+            .input-row {
+                flex-direction: column;
+                gap: 0;
+            }
+
+            .theme-toggle {
+                top: 10px;
+                right: 10px;
+                padding: 6px 12px;
+                font-size: 12px;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <canvas id="particle-canvas"></canvas>
+    <button class="theme-toggle" onclick="toggleTheme()" id="themeBtn"><span>☀️</span> Light Mode</button>
+    <div class="signup-wrapper">
+        <div class="signup-box">
+            <div class="logo"><a href="./index.html"><img src="WhatsApp Image 2026-04-03 at 4.24.59 AM.jpeg" alt="EXNYA"
+                        class="dark-logo"><img src="https://placehold.co/120x40?text=EXNYA" alt="EXNYA"
+                        class="light-logo"></a></div>
+            <h2>Create an account</h2>
+            <form id="signup-form">
+                <div class="input-row">
+                    <div class="input-group"><label>First Name</label><input type="text" id="firstName"
+                            placeholder="First Name" required></div>
+                    <div class="input-group"><label>Last Name</label><input type="text" id="lastName"
+                            placeholder="Last Name" required></div>
+                </div>
+                <div class="input-group"><label>Email Address</label><input type="email" id="email"
+                        placeholder="Enter your email" required></div>
+                <div class="input-group"><label>Password</label><input type="password" id="password"
+                        placeholder="Create a strong password" required></div>
+                <div class="input-group"><label>Confirm Password</label><input type="password" id="confirmPassword"
+                        placeholder="Confirm your password" required></div>
+                <div class="input-group"><label>National ID / Passport (optional)</label><input type="file"
+                        id="kyc-file" accept="image/*" style="padding:8px;"></div>
+                <label class="terms"><input type="checkbox" id="terms-checkbox" required> <span>I agree to the <a
+                            href="#">Terms</a> and <a href="#">Privacy Policy</a></span></label>
+                <button type="submit" class="btn-submit">Sign Up</button>
+            </form>
+            <div class="login-link">Already have an account? <a href="./pl.html">Log in</a></div>
+        </div>
+    </div>
+    <script>
+        const SUPABASE_URL = 'https://clwgengvcdokdzubdfxd.supabase.co';
+        const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNsd2dlbmd2Y2Rva2R6dWJkZnhkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzc5MTIxNjEsImV4cCI6MjA5MzQ4ODE2MX0.0zgizWWXLIHiKdNUAJ3yKaIaxEKsHoFeEIo8IUAMtHU';
+        const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+        const canvas = document.getElementById('particle-canvas');
+        const ctx = canvas.getContext('2d');
+        let particlesArray = [];
+        const numParticles = 80;
+
+        function setCanvasSize() {
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+        }
+        setCanvasSize();
+        window.addEventListener('resize', setCanvasSize);
+
+        class Particle {
+            constructor() {
+                this.x = Math.random() * canvas.width;
+                this.y = Math.random() * canvas.height;
+                this.size = Math.random() * 1.8 + 0.4;
+                this.speedX = (Math.random() * 0.8) - 0.4;
+                this.speedY = (Math.random() * 0.8) - 0.4;
+            }
+            update() {
+                this.x += this.speedX;
+                this.y += this.speedY;
+                if (this.x < 0) this.x = canvas.width;
+                if (this.x > canvas.width) this.x = 0;
+                if (this.y < 0) this.y = canvas.height;
+                if (this.y > canvas.height) this.y = 0;
+            }
+            draw() {
+                ctx.beginPath();
+                ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
+                ctx.fillStyle = '#D4AF37';
+                ctx.shadowBlur = 8;
+                ctx.shadowColor = '#D4AF37';
+                ctx.fill();
+            }
+        }
+
+        function initParticles() {
+            particlesArray = [];
+            for (let i = 0; i < numParticles; i++) particlesArray.push(new Particle());
+        }
+
+        function animateParticles() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            for (let i = 0; i < particlesArray.length; i++) {
+                particlesArray[i].update();
+                particlesArray[i].draw();
+                for (let j = i + 1; j < particlesArray.length; j++) {
+                    const dx = particlesArray[i].x - particlesArray[j].x;
+                    const dy = particlesArray[i].y - particlesArray[j].y;
+                    const distance = Math.sqrt(dx * dx + dy * dy);
+                    if (distance < 130) {
+                        ctx.beginPath();
+                        ctx.strokeStyle = `rgba(212,175,55,${0.15 - distance / 866})`;
+                        ctx.lineWidth = 0.5;
+                        ctx.shadowBlur = 0;
+                        ctx.moveTo(particlesArray[i].x, particlesArray[i].y);
+                        ctx.lineTo(particlesArray[j].x, particlesArray[j].y);
+                        ctx.stroke();
+                    }
+                }
+            }
+            requestAnimationFrame(animateParticles);
+        }
+        initParticles();
+        animateParticles();
+
+        function toggleTheme() {
+            document.body.classList.toggle('light-theme');
+            document.getElementById('themeBtn').innerHTML = document.body.classList.contains('light-theme') ?
+                '<span>🌙</span> Dark Mode' :
+                '<span>☀️</span> Light Mode';
+            localStorage.setItem('theme', document.body.classList.contains('light-theme') ? 'light' : 'dark');
+        }
+
+        if (localStorage.getItem('theme') === 'light') toggleTheme();
+
+        document.getElementById('signup-form').addEventListener('submit', async function (e) {
+            e.preventDefault();
+            const firstName = document.getElementById('firstName').value.trim(),
+                lastName = document.getElementById('lastName').value.trim(),
+                email = document.getElementById('email').value.trim().toLowerCase(),
+                password = document.getElementById('password').value,
+                confirmPassword = document.getElementById('confirmPassword').value,
+                termsChecked = document.getElementById('terms-checkbox').checked,
+                kycFile = document.getElementById('kyc-file').files[0];
+
+            if (!firstName || !lastName || !email || !password || !confirmPassword) {
+                alert(
+                    'Please fill in all fields.'); return;
+            }
+            if (!termsChecked) { alert('You must agree to the Terms.'); return; }
+            if (password !== confirmPassword) { alert('Passwords do not match.'); return; }
+
+            const { data, error } = await supabaseClient.auth.signUp({ email, password });
+            if (error) {
+                alert(error.message.includes('already registered') ?
+                    'An account with this email already exists.' :
+                    'Signup error: ' + error.message); return;
+            }
+            const user = data.user;
+            if (user) {
+                let kycFilePath = null,
+                    kycStatus = 'unverified';
+                if (kycFile) {
+                    const fileName = `${user.id}/${Date.now()}_${kycFile.name}`;
+                    const { error: uploadError } = await supabaseClient.storage.from('kyc_documents').upload(fileName,
+                        kycFile);
+                    if (uploadError) { alert('ID upload failed: ' + uploadError.message); return; }
+                    kycFilePath = fileName;
+                    kycStatus = 'pending';
+                }
+                const { error: profileError } = await supabaseClient.from('profiles').insert({
+                    id: user.id,
+                    first_name: firstName,
+                    last_name: lastName,
+                    email: email,
+                    is_2fa_enabled: false,
+                    is_admin: false,
+                    kyc_status: kycStatus,
+                    kyc_document_url: kycFilePath,
+                    member_since: new Date().toLocaleDateString('en-US', { month: 'long', year: 'numeric' })
+                });
+                if (profileError) alert('Error saving profile: ' + profileError.message);
+                else {
+                    alert('Account created!');
+                    window.location.href = './profile.html';
+                }
+            }
+        });
+
+        supabaseClient.auth.getSession().then(({ data: { session } }) => {
+            if (session) window.location.href = './profile.html';
+        });
+    </script>
+</body>
+
+</html>

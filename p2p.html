@@ -1,0 +1,1585 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>EXNYA | P2P Trading</title>
+    <link
+        href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600;700&family=Sora:wght@400;600;700&family=JetBrains+Mono:wght@400;500&display=swap"
+        rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <style>
+        /* ─── All your existing styles ──────────────────────────────── */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            --bg-base: #080b0f;
+            --bg-elevated: #0d1117;
+            --bg-hover: #161c25;
+            --brand-yellow: #fcd535;
+            --brand-yellow-dim: rgba(252, 213, 53, 0.08);
+            --text-primary: #e6e9ef;
+            --text-secondary: #5e6a7a;
+            --text-muted: #3a4554;
+            --border-light: #1e2733;
+            --trade-green: #0ecb81;
+            --trade-red: #f6465d;
+            --sidebar-width: 240px;
+            --sidebar-collapsed-width: 64px;
+        }
+
+        body {
+            background: var(--bg-base);
+            color: var(--text-primary);
+            display: flex;
+            min-height: 100vh;
+            font-family: 'DM Sans', sans-serif;
+            font-size: 14px;
+            -webkit-font-smoothing: antialiased;
+        }
+
+        #particle-canvas {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 0;
+            pointer-events: none;
+            opacity: 0.45;
+        }
+
+        .app-container {
+            position: relative;
+            z-index: 1;
+            display: flex;
+            width: 100%;
+        }
+
+        /* ─── Sidebar ─────────────────────────────────────────────────── */
+        .sidebar {
+            width: var(--sidebar-width);
+            background: var(--bg-elevated);
+            border-right: 1px solid var(--border-light);
+            display: flex;
+            flex-direction: column;
+            transition: width 0.3s ease, transform 0.3s ease;
+            overflow: hidden;
+            white-space: nowrap;
+            flex-shrink: 0;
+        }
+
+        .sidebar.collapsed {
+            width: var(--sidebar-collapsed-width);
+        }
+
+        .sidebar.collapsed .sidebar-nav a {
+            padding: 12px 0;
+            justify-content: center;
+            gap: 0;
+        }
+
+        .sidebar.collapsed .sidebar-nav a .nav-text {
+            display: none;
+        }
+
+        .sidebar.collapsed .sidebar-nav a .nav-icon {
+            margin: 0 auto;
+        }
+
+        .sidebar-toggle {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 100%;
+            padding: 22px 0 18px;
+            cursor: pointer;
+            color: var(--text-muted);
+            border-bottom: 1px solid var(--border-light);
+            transition: color 0.2s;
+        }
+
+        .sidebar-toggle svg {
+            width: 18px;
+            height: 18px;
+            stroke: currentColor;
+            fill: none;
+            stroke-width: 1.8;
+        }
+
+        .sidebar-toggle:hover {
+            color: var(--brand-yellow);
+        }
+
+        .sidebar-nav {
+            flex: 1;
+            padding: 16px 10px;
+            display: flex;
+            flex-direction: column;
+            gap: 2px;
+        }
+
+        .sidebar-nav a {
+            display: flex;
+            align-items: center;
+            gap: 11px;
+            padding: 10px 14px;
+            border-radius: 8px;
+            color: var(--text-secondary);
+            text-decoration: none;
+            font-size: 13.5px;
+            font-weight: 500;
+            transition: background 0.2s, color 0.2s;
+        }
+
+        .sidebar-nav a:hover {
+            background: var(--brand-yellow-dim);
+            color: var(--brand-yellow);
+        }
+
+        .sidebar-nav a.active {
+            background: var(--brand-yellow-dim);
+            color: var(--brand-yellow);
+        }
+
+        .sidebar-nav a .nav-icon {
+            display: flex;
+            align-items: center;
+            flex-shrink: 0;
+        }
+
+        .sidebar-footer {
+            padding: 12px 10px;
+            border-top: 1px solid var(--border-light);
+        }
+
+        .mobile-toggle {
+            display: none;
+            position: fixed;
+            top: 14px;
+            left: 14px;
+            z-index: 110;
+            width: 38px;
+            height: 38px;
+            background: var(--bg-elevated);
+            border: 1px solid var(--border-light);
+            border-radius: 7px;
+            cursor: pointer;
+            align-items: center;
+            justify-content: center;
+            color: var(--text-secondary);
+            transition: color 0.2s, border-color 0.2s;
+        }
+
+        .mobile-toggle:hover {
+            color: var(--brand-yellow);
+            border-color: var(--brand-yellow);
+        }
+
+        @media (max-width: 768px) {
+            .sidebar {
+                position: fixed;
+                left: 0;
+                top: 0;
+                bottom: 0;
+                z-index: 100;
+                box-shadow: 8px 0 32px rgba(0, 0, 0, 0.6);
+                transform: translateX(-100%);
+                transition: transform 0.3s ease;
+            }
+
+            .sidebar.open {
+                transform: translateX(0);
+            }
+
+            .sidebar.collapsed {
+                width: 240px;
+                transform: translateX(-100%);
+            }
+
+            .mobile-toggle {
+                display: flex;
+            }
+        }
+
+        /* ─── Main Content ───────────────────────────────────────────── */
+        .main-content {
+            flex: 1;
+            padding: 28px 32px;
+            overflow-y: auto;
+            max-width: 1400px;
+        }
+
+        @media (max-width: 768px) {
+            .main-content {
+                padding: 70px 16px 20px;
+            }
+        }
+
+        .top-bar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 16px;
+            margin-bottom: 32px;
+        }
+
+        .top-logo {
+            height: 34px;
+            width: auto;
+        }
+
+        .user-info-row {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .avatar {
+            width: 42px;
+            height: 42px;
+            border-radius: 10px;
+            background: linear-gradient(135deg, var(--brand-yellow) 0%, #c9920a 100%);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-family: 'Sora', sans-serif;
+            font-weight: 700;
+            font-size: 17px;
+            color: #000;
+        }
+
+        .user-text {
+            display: flex;
+            flex-direction: column;
+            gap: 2px;
+        }
+
+        .profile-name {
+            font-family: 'Sora', sans-serif;
+            font-weight: 600;
+            font-size: 15px;
+        }
+
+        .user-email {
+            font-size: 12px;
+            color: var(--text-secondary);
+        }
+
+        .logout-btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 7px;
+            background: transparent;
+            border: 1px solid var(--border-light);
+            color: var(--text-secondary);
+            padding: 7px 16px;
+            border-radius: 7px;
+            cursor: pointer;
+            font-size: 13px;
+            font-weight: 500;
+            transition: border-color 0.2s, color 0.2s;
+        }
+
+        .logout-btn svg {
+            width: 13px;
+            height: 13px;
+            stroke: currentColor;
+            fill: none;
+            stroke-width: 2;
+        }
+
+        .logout-btn:hover {
+            border-color: var(--trade-red);
+            color: var(--trade-red);
+        }
+
+        .announcement {
+            background: linear-gradient(135deg, rgba(252, 213, 53, 0.08), rgba(252, 213, 53, 0.02));
+            border-left: 3px solid var(--brand-yellow);
+            border-radius: 12px;
+            padding: 14px 20px;
+            margin-bottom: 28px;
+            display: flex;
+            align-items: center;
+            gap: 14px;
+            backdrop-filter: blur(4px);
+        }
+
+        .announcement svg {
+            width: 20px;
+            height: 20px;
+            stroke: var(--brand-yellow);
+            fill: none;
+            stroke-width: 1.8;
+            flex-shrink: 0;
+        }
+
+        .announcement-content {
+            flex: 1;
+        }
+
+        .announcement-title {
+            font-weight: 600;
+            font-size: 13px;
+            color: var(--brand-yellow);
+            margin-bottom: 2px;
+        }
+
+        .announcement-text {
+            font-size: 12px;
+            color: var(--text-secondary);
+        }
+
+        .p2p-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-end;
+            flex-wrap: wrap;
+            gap: 16px;
+            margin-bottom: 28px;
+        }
+
+        .p2p-header h1 {
+            font-family: 'Sora', sans-serif;
+            font-size: 28px;
+            font-weight: 700;
+            background: linear-gradient(135deg, #fff, var(--brand-yellow));
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+        }
+
+        .region-info {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            background: var(--bg-elevated);
+            padding: 8px 16px;
+            border-radius: 40px;
+            border: 1px solid var(--border-light);
+        }
+
+        .region-info svg {
+            width: 16px;
+            height: 16px;
+            stroke: var(--brand-yellow);
+            fill: none;
+            stroke-width: 1.8;
+        }
+
+        .region-info span {
+            font-size: 13px;
+            font-weight: 500;
+        }
+
+        .tabs {
+            display: flex;
+            gap: 8px;
+            border-bottom: 1px solid var(--border-light);
+            margin-bottom: 28px;
+            overflow-x: auto;
+        }
+
+        .tab {
+            background: transparent;
+            border: none;
+            padding: 10px 20px;
+            font-weight: 600;
+            font-size: 14px;
+            color: var(--text-secondary);
+            cursor: pointer;
+            transition: all 0.2s;
+            position: relative;
+            white-space: nowrap;
+        }
+
+        .tab.active {
+            color: var(--brand-yellow);
+        }
+
+        .tab.active::after {
+            content: '';
+            position: absolute;
+            bottom: -1px;
+            left: 0;
+            width: 100%;
+            height: 2px;
+            background: var(--brand-yellow);
+        }
+
+        .filter-bar {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 12px;
+            margin-bottom: 28px;
+            background: var(--bg-elevated);
+            padding: 16px 20px;
+            border-radius: 16px;
+            border: 1px solid var(--border-light);
+        }
+
+        .filter-select,
+        .filter-input {
+            background: var(--bg-base);
+            border: 1px solid var(--border-light);
+            border-radius: 10px;
+            padding: 10px 14px;
+            color: var(--text-primary);
+            font-size: 13px;
+            outline: none;
+            min-width: 130px;
+        }
+
+        .filter-select:focus,
+        .filter-input:focus {
+            border-color: var(--brand-yellow);
+        }
+
+        .kyc-warning {
+            background: rgba(246, 70, 93, 0.08);
+            border-left: 3px solid var(--trade-red);
+            border-radius: 10px;
+            padding: 12px 16px;
+            margin-bottom: 20px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-size: 13px;
+        }
+
+        .kyc-warning a {
+            color: var(--brand-yellow);
+            text-decoration: none;
+            font-weight: 600;
+        }
+
+        .orders-list {
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+        }
+
+        .order-card {
+            background: var(--bg-elevated);
+            border: 1px solid var(--border-light);
+            border-radius: 20px;
+            padding: 20px;
+            transition: all 0.2s;
+        }
+
+        .order-card:hover {
+            background: var(--bg-hover);
+            border-color: var(--brand-yellow-dim);
+        }
+
+        .card-row {
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            justify-content: space-between;
+            gap: 16px;
+        }
+
+        .merchant-info {
+            display: flex;
+            align-items: center;
+            gap: 14px;
+            min-width: 200px;
+        }
+
+        .merchant-avatar {
+            width: 48px;
+            height: 48px;
+            border-radius: 50%;
+            background: var(--brand-yellow-dim);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 700;
+            font-size: 20px;
+            color: var(--brand-yellow);
+        }
+
+        .merchant-details {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .merchant-name {
+            font-weight: 700;
+            font-size: 16px;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .merchant-stats {
+            font-size: 12px;
+            color: var(--text-secondary);
+        }
+
+        .order-details {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 24px;
+            align-items: baseline;
+        }
+
+        .order-price {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 22px;
+            font-weight: 700;
+            color: var(--brand-yellow);
+        }
+
+        .order-limits,
+        .order-amount {
+            font-size: 12px;
+            color: var(--text-secondary);
+        }
+
+        .payment-method {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            background: var(--bg-base);
+            padding: 5px 12px;
+            border-radius: 20px;
+            font-size: 12px;
+            color: var(--text-secondary);
+        }
+
+        .action-btn {
+            background: var(--brand-yellow);
+            color: #000;
+            border: none;
+            padding: 8px 28px;
+            border-radius: 10px;
+            font-weight: 700;
+            font-size: 14px;
+            cursor: pointer;
+            transition: all 0.2s;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            justify-content: center;
+        }
+
+        .action-btn:hover {
+            background: #e6c030;
+            transform: scale(1.02);
+        }
+
+        .action-btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .action-btn .spinner {
+            width: 16px;
+            height: 16px;
+            border: 2px solid rgba(0, 0, 0, 0.2);
+            border-top-color: #000;
+            border-radius: 50%;
+            animation: spin 0.7s linear infinite;
+        }
+
+        @keyframes spin {
+            to {
+                transform: rotate(360deg);
+            }
+        }
+
+        .action-btn.small {
+            padding: 5px 14px;
+            font-size: 12px;
+        }
+
+        .action-btn.danger {
+            background: var(--trade-red);
+            color: #fff;
+        }
+
+        .action-btn.danger:hover {
+            background: #d43d52;
+        }
+
+        .status-badge {
+            display: inline-block;
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 11px;
+            font-weight: 600;
+        }
+
+        .status-open {
+            background: rgba(14, 203, 129, 0.12);
+            color: var(--trade-green);
+        }
+        .status-matched {
+            background: rgba(252, 213, 53, 0.12);
+            color: var(--brand-yellow);
+        }
+        .status-escrowed {
+            background: rgba(252, 213, 53, 0.15);
+            color: var(--brand-yellow);
+        }
+        .status-paid {
+            background: rgba(14, 203, 129, 0.15);
+            color: var(--trade-green);
+        }
+        .status-completed {
+            background: rgba(14, 203, 129, 0.2);
+            color: var(--trade-green);
+        }
+        .status-disputed {
+            background: rgba(246, 70, 93, 0.15);
+            color: var(--trade-red);
+        }
+        .status-cancelled {
+            background: rgba(132, 142, 156, 0.1);
+            color: var(--text-muted);
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 48px;
+            color: var(--text-muted);
+        }
+
+        .create-form {
+            background: var(--bg-elevated);
+            border-radius: 20px;
+            padding: 28px;
+            max-width: 500px;
+            margin: 0 auto;
+        }
+
+        .create-form h3 {
+            font-family: 'Sora', sans-serif;
+            margin-bottom: 20px;
+            font-size: 18px;
+        }
+
+        .create-form input,
+        .create-form select {
+            width: 100%;
+            background: var(--bg-base);
+            border: 1px solid var(--border-light);
+            border-radius: 10px;
+            padding: 12px;
+            margin-bottom: 16px;
+            color: var(--text-primary);
+        }
+
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.8);
+            z-index: 1000;
+            display: none;
+            justify-content: center;
+            align-items: center;
+            padding: 16px;
+        }
+
+        .modal {
+            background: var(--bg-elevated);
+            border-radius: 20px;
+            padding: 28px;
+            width: 100%;
+            max-width: 400px;
+            text-align: center;
+            border: 1px solid var(--border-light);
+        }
+
+        .modal h3 {
+            font-family: 'Sora', sans-serif;
+            margin-bottom: 16px;
+        }
+
+        .modal button {
+            margin: 8px;
+        }
+
+        .escrow-status {
+            font-size: 12px;
+            color: var(--text-secondary);
+            margin-top: 4px;
+        }
+
+        .escrow-status .funded {
+            color: var(--trade-green);
+        }
+        .escrow-status .pending {
+            color: var(--brand-yellow);
+        }
+        .escrow-status .released {
+            color: var(--trade-green);
+        }
+        .escrow-status .refunded {
+            color: var(--trade-red);
+        }
+
+        .refresh-orders-btn {
+            margin-bottom: 16px;
+            text-align: right;
+        }
+
+        @media (max-width: 800px) {
+            .card-row {
+                flex-direction: column;
+                align-items: stretch;
+            }
+            .merchant-info {
+                justify-content: space-between;
+            }
+            .order-details {
+                justify-content: space-between;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <canvas id="particle-canvas"></canvas>
+    <div class="app-container">
+        <!-- Sidebar -->
+        <aside class="sidebar" id="sidebar">
+            <div class="sidebar-toggle" onclick="toggleSidebar()">
+                <svg viewBox="0 0 24 24">
+                    <line x1="3" y1="6" x2="21" y2="6" />
+                    <line x1="3" y1="12" x2="21" y2="12" />
+                    <line x1="3" y1="18" x2="21" y2="18" />
+                </svg>
+            </div>
+            <nav class="sidebar-nav">
+                <a href="./profile.html">
+                    <span class="nav-icon"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                            <rect x="3" y="3" width="7" height="7" rx="1" />
+                            <rect x="14" y="3" width="7" height="7" rx="1" />
+                            <rect x="3" y="14" width="7" height="7" rx="1" />
+                            <rect x="14" y="14" width="7" height="7" rx="1" />
+                        </svg></span>
+                    <span class="nav-text">Overview</span>
+                </a>
+                <a href="./wallet.html">
+                    <span class="nav-icon"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                            <rect x="2" y="4" width="20" height="16" rx="2" />
+                            <path d="M12 9v4M10 11h4" />
+                        </svg></span>
+                    <span class="nav-text">Wallet</span>
+                </a>
+                <a href="./markets.html">
+                    <span class="nav-icon"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                            <circle cx="12" cy="12" r="10" />
+                            <line x1="2" y1="12" x2="22" y2="12" />
+                            <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z" />
+                        </svg></span>
+                    <span class="nav-text">Markets</span>
+                </a>
+                <a href="./live-portfolio.html">
+                    <span class="nav-icon"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                            <polyline points="22 7 13.5 15.5 8.5 10.5 2 17" />
+                            <polyline points="16 7 22 7 22 13" />
+                        </svg></span>
+                    <span class="nav-text">Live Portfolio</span>
+                </a>
+                <a href="./swap.html">
+                    <span class="nav-icon"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                            <polyline points="17 1 21 5 17 9" />
+                            <path d="M3 11V9a4 4 0 0 1 4-4h14" />
+                            <polyline points="7 23 3 19 7 15" />
+                            <path d="M21 13v2a4 4 0 0 1-4 4H3" />
+                        </svg></span>
+                    <span class="nav-text">Swap</span>
+                </a>
+                <a href="./security.html">
+                    <span class="nav-icon"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                            <rect x="3" y="11" width="18" height="11" rx="2" ry="2" />
+                            <path d="M7 11V7a5 5 0 0 1 10 0v4" />
+                        </svg></span>
+                    <span class="nav-text">Security</span>
+                </a>
+                <a href="#" class="active">
+                    <span class="nav-icon"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M16 17l-4 4-4-4M12 3v18" />
+                        </svg></span>
+                    <span class="nav-text">P2P</span>
+                </a>
+                <a href="./settings.html">
+                    <span class="nav-icon"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                            <circle cx="12" cy="12" r="3" />
+                            <path d="M12 1v4M12 19v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M1 12h4M19 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83" />
+                        </svg></span>
+                    <span class="nav-text">Settings</span>
+                </a>
+            </nav>
+            <div class="sidebar-footer"></div>
+        </aside>
+
+        <!-- Mobile toggle -->
+        <div class="mobile-toggle" id="mobile-toggle" onclick="toggleSidebar()">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                <line x1="3" y1="6" x2="21" y2="6" />
+                <line x1="3" y1="12" x2="21" y2="12" />
+                <line x1="3" y1="18" x2="21" y2="18" />
+            </svg>
+        </div>
+
+        <!-- Main content -->
+        <main class="main-content">
+            <!-- Top bar -->
+            <div class="top-bar">
+                <img class="top-logo" src="https://placehold.co/120x40?text=EXNYA" alt="EXNYA">
+                <div class="user-info-row">
+                    <div class="avatar" id="user-initials">U</div>
+                    <div class="user-text">
+                        <div class="profile-name" id="user-fullname">Loading...</div>
+                        <div class="user-email" id="user-email-display">--</div>
+                    </div>
+                </div>
+                <button class="logout-btn" onclick="logout()">
+                    <svg viewBox="0 0 24 24">
+                        <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
+                        <polyline points="16 17 21 12 16 7" />
+                        <line x1="21" y1="12" x2="9" y2="12" />
+                    </svg>
+                    Sign Out
+                </button>
+            </div>
+
+            <!-- Announcement -->
+            <div class="announcement">
+                <svg viewBox="0 0 24 24">
+                    <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9M3 17h18M12 2v3M3.5 5.5l2 2M20.5 5.5l-2 2" />
+                    <line x1="12" y1="22" x2="12" y2="17" />
+                </svg>
+                <div class="announcement-content">
+                    <div class="announcement-title">✅ Real On‑Chain Escrow via Crossmint</div>
+                    <div class="announcement-text">Funds are transferred on‑chain when you release. No gas fees – covered by EXNYA.</div>
+                </div>
+            </div>
+
+            <!-- Header -->
+            <div class="p2p-header">
+                <h1>Express P2P Block Trade</h1>
+                <div class="region-info">
+                    <svg viewBox="0 0 24 24">
+                        <circle cx="12" cy="12" r="10" />
+                        <line x1="2" y1="12" x2="22" y2="12" />
+                        <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z" />
+                    </svg>
+                    <span id="region-text">Detecting region...</span>
+                </div>
+            </div>
+
+            <!-- Tabs -->
+            <div class="tabs" id="p2p-tabs">
+                <button class="tab active" data-tab="buy">Buy</button>
+                <button class="tab" data-tab="sell">Sell</button>
+                <button class="tab" data-tab="orders">My Orders</button>
+                <button class="tab" data-tab="ads">Create Ad</button>
+            </div>
+
+            <!-- KYC warning -->
+            <div id="kyc-warning" class="kyc-warning" style="display:none;">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <circle cx="12" cy="12" r="10" />
+                    <line x1="12" y1="8" x2="12" y2="12" />
+                    <line x1="12" y1="16" x2="12.01" y2="16" />
+                </svg>
+                <span>You must complete identity verification to trade. <a href="./profile.html">Verify now</a></span>
+            </div>
+
+            <!-- Filter bar -->
+            <div id="filter-bar" class="filter-bar">
+                <select id="filter-asset" class="filter-select">
+                    <option value="USDT">USDT</option>
+                    <option value="BTC">BTC</option>
+                    <option value="ETH">ETH</option>
+                    <option value="SOL">SOL</option>
+                    <option value="MATIC">MATIC</option>
+                    <option value="LINK">LINK</option>
+                    <option value="UNI">UNI</option>
+                </select>
+                <input type="number" id="filter-amount" class="filter-input" placeholder="Min amount (USD)">
+                <select id="filter-payment" class="filter-select"></select>
+                <button class="action-btn" onclick="applyFilters()" style="padding: 8px 20px;">Search</button>
+            </div>
+
+            <!-- Dynamic tab content -->
+            <div id="tab-content"></div>
+        </main>
+    </div>
+
+    <!-- Confirm modal -->
+    <div id="confirm-modal" class="modal-overlay">
+        <div class="modal">
+            <h3>Confirm Trade</h3>
+            <p id="confirm-details"></p>
+            <button class="action-btn" id="confirm-yes">Confirm</button>
+            <button class="action-btn" style="background: transparent; border: 1px solid var(--border-light);" onclick="closeConfirmModal()">Cancel</button>
+        </div>
+    </div>
+
+    <!-- ─── JAVASCRIPT ──────────────────────────────────────────────────── -->
+    <script>
+        // ─── Configuration ──────────────────────────────────────────────
+        const SUPABASE_URL = 'https://clwgengvcdokdzubdfxd.supabase.co';
+        const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNsd2dlbmd2Y2Rva2R6dWJkZnhkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzc5MTIxNjEsImV4cCI6MjA5MzQ4ODE2MX0.0zgizWWXLIHiKdNUAJ3yKaIaxEKsHoFeEIo8IUAMtHU';
+        const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+        window.supabaseClient = supabaseClient;
+        const WALLET_FUNCTION_URL = `${SUPABASE_URL}/functions/v1/wallet-operations`;
+
+        // ─── Global State ──────────────────────────────────────────────
+        let currentUser = null;
+        let currentProfile = { kyc_status: 'unverified', completed_trades_count: 0, merchant: false, first_name: '' };
+        let currentTab = 'buy';
+        let allTrades = [];
+        let myTrades = [];
+        let userCache = {};
+        let autoRefreshInterval = null;
+        let isProcessing = false;
+        let userCountryCode = 'US';
+
+        // ─── DOM refs ──────────────────────────────────────────────────
+        const sidebar = document.getElementById('sidebar');
+        if (localStorage.getItem('sidebarCollapsed') === 'true') sidebar.classList.add('collapsed');
+
+        function toggleSidebar() {
+            if (window.innerWidth <= 768) sidebar.classList.toggle('open');
+            else sidebar.classList.toggle('collapsed');
+            localStorage.setItem('sidebarCollapsed', sidebar.classList.contains('collapsed'));
+        }
+
+        // ─── Particle background ──────────────────────────────────────
+        const canvas = document.getElementById('particle-canvas');
+        const ctx = canvas.getContext('2d');
+        let particles = [];
+
+        function resizeCanvas() {
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+        }
+        resizeCanvas();
+        window.addEventListener('resize', resizeCanvas);
+
+        class Particle {
+            constructor() {
+                this.x = Math.random() * canvas.width;
+                this.y = Math.random() * canvas.height;
+                this.size = Math.random() * 1.5 + 0.3;
+                this.speedX = (Math.random() - 0.5) * 0.4;
+                this.speedY = (Math.random() - 0.5) * 0.4;
+            }
+            update() {
+                this.x += this.speedX;
+                this.y += this.speedY;
+                if (this.x < 0) this.x = canvas.width;
+                if (this.x > canvas.width) this.x = 0;
+                if (this.y < 0) this.y = canvas.height;
+                if (this.y > canvas.height) this.y = 0;
+            }
+            draw() {
+                ctx.beginPath();
+                ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
+                ctx.fillStyle = '#D4AF37';
+                ctx.fill();
+            }
+        }
+
+        for (let i = 0; i < 60; i++) particles.push(new Particle());
+
+        function animate() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            particles.forEach(p => { p.update(); p.draw(); });
+            requestAnimationFrame(animate);
+        }
+        animate();
+
+        // ─── Helper: get fresh Supabase token ────────────────────────
+        async function getFreshToken() {
+            const { data: { session }, error } = await supabaseClient.auth.refreshSession();
+            if (error || !session) {
+                const { data: { session: newSession }, error: newError } = await supabaseClient.auth.getSession();
+                if (newError || !newSession) {
+                    window.location.href = './pl.html';
+                    throw new Error('No valid session');
+                }
+                return newSession.access_token;
+            }
+            return session.access_token;
+        }
+
+        // ─── Helper: call wallet-operations Edge Function ────────────
+        async function callWalletFunction(action, extraData = {}) {
+            const token = await getFreshToken();
+            const response = await fetch(WALLET_FUNCTION_URL, {
+                method: 'POST',
+                headers: {
+                    'Authorization': `Bearer ${token}`,
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ action, ...extraData }),
+            });
+            const result = await response.json();
+            if (!response.ok) throw new Error(result.error || `Wallet operation failed: ${action}`);
+            return result;
+        }
+
+        // ─── Helper: increment completed trades ──────────────────────
+        async function incrementCompletedTrades(userId) {
+            if (!userId) return;
+            const { data: profile } = await supabaseClient
+                .from('profiles')
+                .select('completed_trades_count')
+                .eq('id', userId)
+                .single();
+            const newCount = (profile?.completed_trades_count || 0) + 1;
+            await supabaseClient
+                .from('profiles')
+                .update({ completed_trades_count: newCount, merchant: newCount >= 5 })
+                .eq('id', userId);
+        }
+
+        // ─── Detect user region ──────────────────────────────────────
+        async function detectUserRegion() {
+            try {
+                const res = await fetch('https://ipapi.co/json/');
+                const data = await res.json();
+                userCountryCode = data.country_code || 'US';
+                const countryName = data.country_name || 'United States';
+                document.getElementById('region-text').innerHTML = `${countryName} · ${userCountryCode}`;
+            } catch (e) {
+                userCountryCode = 'US';
+                document.getElementById('region-text').innerHTML = 'Global · US';
+            }
+        }
+
+        // ─── Load data from Supabase ─────────────────────────────────
+        async function loadData() {
+            try {
+                const { data: openAds } = await supabaseClient
+                    .from('p2p_trades')
+                    .select('*')
+                    .eq('status', 'open')
+                    .eq('country_code', userCountryCode)
+                    .order('created_at', { ascending: false });
+                allTrades = openAds || [];
+
+                const { data: involved } = await supabaseClient
+                    .from('p2p_trades')
+                    .select('*')
+                    .or(`user_id.eq.${currentUser.id},matched_user_id.eq.${currentUser.id}`)
+                    .order('created_at', { ascending: false });
+                myTrades = involved || [];
+
+                const userIds = [...new Set(allTrades.map(t => t.user_id))];
+                const counterpartyIds = [];
+                for (const trade of myTrades) {
+                    const otherId = trade.user_id === currentUser.id ? trade.matched_user_id : trade.user_id;
+                    if (otherId) counterpartyIds.push(otherId);
+                }
+                const allIds = [...new Set([...userIds, ...counterpartyIds])].filter(id => id);
+                if (allIds.length) {
+                    const { data: profiles } = await supabaseClient
+                        .from('profiles')
+                        .select('id, first_name, merchant, completed_trades_count')
+                        .in('id', allIds);
+                    if (profiles) profiles.forEach(p => userCache[p.id] = p);
+                }
+            } catch (e) { console.error('loadData error:', e); }
+        }
+
+        // ─── P2P Core Functions ───────────────────────────────────────
+
+        // Initiate a trade (buyer clicks "Buy")
+        async function initiateTrade(adId) {
+            if (isProcessing) return;
+            if (currentProfile.kyc_status !== 'verified') {
+                alert('Complete KYC first.');
+                return;
+            }
+            const ad = allTrades.find(t => t.id === adId);
+            if (!ad || ad.user_id === currentUser.id) {
+                alert('Invalid ad.');
+                return;
+            }
+
+            isProcessing = true;
+            try {
+                // 1. Match the trade
+                const { error: matchError } = await supabaseClient
+                    .from('p2p_trades')
+                    .update({ matched_user_id: currentUser.id, status: 'matched' })
+                    .eq('id', adId);
+                if (matchError) throw new Error('Match failed: ' + matchError.message);
+
+                // 2. Verify seller has enough balance via Crossmint
+                const sellerWallets = await callWalletFunction('listBalances', { userId: ad.user_id });
+                const sellerAsset = sellerWallets.balances.find(
+                    b => b.asset === ad.asset_symbol && b.chain === (ad.escrow_chain || 'base-sepolia')
+                );
+                if (!sellerAsset || sellerAsset.balance < parseFloat(ad.amount)) {
+                    // Rollback
+                    await supabaseClient.from('p2p_trades').update({ matched_user_id: null, status: 'open' }).eq('id', adId);
+                    throw new Error('Seller does not have enough balance on the exchange.');
+                }
+
+                // 3. Mark trade as escrowed (funds reserved)
+                await supabaseClient
+                    .from('p2p_trades')
+                    .update({
+                        escrow_status: 'pending',
+                        status: 'escrowed',
+                        escrow_address: 'crossmint-hold',
+                        escrow_chain: ad.escrow_chain || 'base-sepolia',
+                    })
+                    .eq('id', adId);
+
+                alert('✅ Trade matched! Seller\'s funds are reserved. Please send fiat payment to the seller.');
+            } catch (err) {
+                alert('❌ ' + err.message);
+            } finally {
+                isProcessing = false;
+                await loadData();
+                switchTab('orders');
+            }
+        }
+
+        // Update trade status (fund, paid, completed, disputed, cancelled)
+        async function updateTradeStatus(tradeId, newStatus) {
+            if (isProcessing) return;
+            const trade = myTrades.find(t => t.id === tradeId);
+            if (!trade) return;
+
+            isProcessing = true;
+            const btn = document.querySelector(`[data-trade="${tradeId}"][data-action="${newStatus}"]`);
+            if (btn) {
+                btn.disabled = true;
+                btn.innerHTML = '<div class="spinner"></div>';
+            }
+
+            try {
+                if (newStatus === 'fund') {
+                    // Buyer funds escrow (for Crossmint, we just mark it)
+                    await supabaseClient
+                        .from('p2p_trades')
+                        .update({ escrow_status: 'funded', status: 'escrowed' })
+                        .eq('id', tradeId);
+                    alert('✅ Escrow funded!');
+                }
+                else if (newStatus === 'paid') {
+                    // Seller marks fiat received
+                    await supabaseClient
+                        .from('p2p_trades')
+                        .update({ status: 'paid' })
+                        .eq('id', tradeId);
+                    alert('✅ Payment marked. Waiting for buyer to release crypto.');
+                }
+                else if (newStatus === 'completed') {
+                    // Buyer releases -> execute REAL Crossmint transfer
+                    const { data: tradeData } = await supabaseClient
+                        .from('p2p_trades')
+                        .select('user_id, matched_user_id, asset_symbol, amount, escrow_chain')
+                        .eq('id', tradeId)
+                        .single();
+
+                    // Transfer from seller (user_id) to buyer (matched_user_id)
+                    const transferResult = await callWalletFunction('transfer', {
+                        fromUserId: tradeData.user_id,
+                        toUserId: tradeData.matched_user_id,
+                        asset: tradeData.asset_symbol,
+                        chain: tradeData.escrow_chain || 'base-sepolia',
+                        amount: parseFloat(tradeData.amount),
+                    });
+
+                    // Update trade status with real TX hash
+                    await supabaseClient
+                        .from('p2p_trades')
+                        .update({
+                            escrow_status: 'released',
+                            status: 'completed',
+                            tx_hash: transferResult.txHash || 'pending',
+                        })
+                        .eq('id', tradeId);
+
+                    // Increment completed trades for both parties
+                    await incrementCompletedTrades(tradeData.user_id);
+                    await incrementCompletedTrades(tradeData.matched_user_id);
+
+                    alert(`✅ REAL crypto transferred on-chain! TX: ${transferResult.txHash?.slice(0, 10) || 'pending'}...`);
+                }
+                else if (newStatus === 'disputed') {
+                    await supabaseClient.from('p2p_trades').update({ status: 'disputed' }).eq('id', tradeId);
+                    alert('⛔ Dispute raised. Admin will review.');
+                }
+                else if (newStatus === 'cancelled') {
+                    // Admin or seller cancels – refund the held balance (no Crossmint transfer)
+                    await supabaseClient
+                        .from('p2p_trades')
+                        .update({ escrow_status: 'refunded', status: 'cancelled' })
+                        .eq('id', tradeId);
+                    alert('⛔ Trade cancelled.');
+                }
+            } catch (err) {
+                alert('❌ ' + err.message);
+            } finally {
+                isProcessing = false;
+                if (btn) {
+                    btn.disabled = false;
+                    btn.textContent = newStatus.charAt(0).toUpperCase() + newStatus.slice(1);
+                }
+                await loadData();
+                renderTab();
+            }
+        }
+
+        // Create a new ad
+        async function createAd() {
+            if (isProcessing) return;
+            const type = document.getElementById('ad-type').value;
+            const symbol = document.getElementById('ad-coin').value;
+            const amount = parseFloat(document.getElementById('ad-amount').value);
+            const price = parseFloat(document.getElementById('ad-price').value);
+            const payment = document.getElementById('ad-payment').value;
+            if (!amount || !price || amount <= 0 || price <= 0) {
+                alert('Valid amount and price required.');
+                return;
+            }
+
+            isProcessing = true;
+            try {
+                // Verify seller has enough balance in Crossmint before posting ad
+                const myWallets = await callWalletFunction('listBalances');
+                const myAsset = myWallets.balances.find(b => b.asset === symbol);
+                if (!myAsset || myAsset.balance < amount) {
+                    throw new Error(`You don't have enough ${symbol} balance on the exchange.`);
+                }
+
+                const { error } = await supabaseClient.from('p2p_trades').insert({
+                    user_id: currentUser.id,
+                    type,
+                    asset_symbol: symbol,
+                    amount,
+                    price,
+                    total: amount * price,
+                    payment_method: payment,
+                    status: 'open',
+                    country_code: userCountryCode,
+                    escrow_chain: 'base-sepolia', // default
+                });
+                if (error) throw new Error('Failed to create ad: ' + error.message);
+                alert('✅ Ad created!');
+                await loadData();
+                switchTab(type === 'sell' ? 'buy' : 'sell');
+            } catch (err) {
+                alert('❌ ' + err.message);
+            } finally {
+                isProcessing = false;
+            }
+        }
+
+        // Cancel an ad
+        async function cancelAd(adId) {
+            if (isProcessing || !confirm('Cancel ad?')) return;
+            isProcessing = true;
+            try {
+                await supabaseClient.from('p2p_trades').update({ status: 'cancelled' }).eq('id', adId);
+                await loadData();
+                renderTab();
+            } catch (err) { alert('❌ ' + err.message); }
+            finally { isProcessing = false; }
+        }
+
+        // ─── Rendering ──────────────────────────────────────────────────
+
+        function renderTab() {
+            const container = document.getElementById('tab-content');
+            if (!container) return;
+
+            if (currentTab === 'buy') {
+                const asset = document.getElementById('filter-asset')?.value || 'USDT';
+                const minAmount = parseFloat(document.getElementById('filter-amount')?.value) || 0;
+                const payment = document.getElementById('filter-payment')?.value || '';
+                let ads = allTrades.filter(t => t.type === 'sell');
+                if (asset) ads = ads.filter(t => t.asset_symbol === asset);
+                if (payment) ads = ads.filter(t => t.payment_method === payment);
+                if (minAmount > 0) ads = ads.filter(t => parseFloat(t.amount) >= minAmount);
+                if (ads.length === 0) {
+                    container.innerHTML =
+                        `<div class="empty-state">No buy offers found.<br><button class="action-btn" onclick="switchTab('ads')" style="margin-top:12px;">Create an ad</button></div>`;
+                    return;
+                }
+                let html = '<div class="orders-list">';
+                ads.forEach(ad => {
+                    const owner = userCache[ad.user_id] || { first_name: 'User', merchant: false, completed_trades_count: 0 };
+                    const name = owner.first_name || 'User';
+                    const merchant = owner.merchant ? '⭐' : '';
+                    const tradesCount = owner.completed_trades_count || 0;
+                    const completion = tradesCount > 0 ? Math.min(99, Math.floor((tradesCount / (tradesCount + 1)) * 100)) : 85;
+                    html += `
+                        <div class="order-card">
+                            <div class="card-row">
+                                <div class="merchant-info">
+                                    <div class="merchant-avatar">${name.charAt(0).toUpperCase()}</div>
+                                    <div class="merchant-details">
+                                        <div class="merchant-name">${name} ${merchant}</div>
+                                        <div class="merchant-stats">${tradesCount} orders · ${completion}% completion</div>
+                                    </div>
+                                </div>
+                                <div class="order-details">
+                                    <div class="order-price">$${parseFloat(ad.price).toFixed(2)}</div>
+                                    <div>
+                                        <div class="order-limits">Limits: $${parseFloat(ad.amount).toFixed(2)} - $${(parseFloat(ad.amount) * 1.5).toFixed(2)}</div>
+                                        <div class="order-amount">Amount: ${ad.amount} ${ad.asset_symbol}</div>
+                                    </div>
+                                    <div class="payment-method">${ad.payment_method}</div>
+                                    ${currentProfile.kyc_status === 'verified' && ad.user_id !== currentUser.id ? `<button class="action-btn" onclick="showTradeConfirm('${ad.id}')">Buy</button>` : (ad.user_id === currentUser.id ? '<span class="status-badge status-open">Your ad</span>' : '')}
+                                </div>
+                            </div>
+                        </div>`;
+                });
+                html += '</div>';
+                container.innerHTML = html;
+            }
+            else if (currentTab === 'sell') {
+                const asset = document.getElementById('filter-asset')?.value || 'USDT';
+                const minAmount = parseFloat(document.getElementById('filter-amount')?.value) || 0;
+                const payment = document.getElementById('filter-payment')?.value || '';
+                let ads = allTrades.filter(t => t.type === 'buy');
+                if (asset) ads = ads.filter(t => t.asset_symbol === asset);
+                if (payment) ads = ads.filter(t => t.payment_method === payment);
+                if (minAmount > 0) ads = ads.filter(t => parseFloat(t.amount) >= minAmount);
+                if (ads.length === 0) {
+                    container.innerHTML = `<div class="empty-state">No sell offers found.</div>`;
+                    return;
+                }
+                let html = '<div class="orders-list">';
+                ads.forEach(ad => {
+                    const owner = userCache[ad.user_id] || { first_name: 'User', merchant: false, completed_trades_count: 0 };
+                    const name = owner.first_name || 'User';
+                    const merchant = owner.merchant ? '⭐' : '';
+                    const tradesCount = owner.completed_trades_count || 0;
+                    const completion = tradesCount > 0 ? Math.min(99, Math.floor((tradesCount / (tradesCount + 1)) * 100)) : 85;
+                    html += `
+                        <div class="order-card">
+                            <div class="card-row">
+                                <div class="merchant-info">
+                                    <div class="merchant-avatar">${name.charAt(0).toUpperCase()}</div>
+                                    <div class="merchant-details">
+                                        <div class="merchant-name">${name} ${merchant}</div>
+                                        <div class="merchant-stats">${tradesCount} orders · ${completion}% completion</div>
+                                    </div>
+                                </div>
+                                <div class="order-details">
+                                    <div class="order-price">$${parseFloat(ad.price).toFixed(2)}</div>
+                                    <div>
+                                        <div class="order-limits">Limits: $${parseFloat(ad.amount).toFixed(2)} - $${(parseFloat(ad.amount) * 1.5).toFixed(2)}</div>
+                                        <div class="order-amount">Amount: ${ad.amount} ${ad.asset_symbol}</div>
+                                    </div>
+                                    <div class="payment-method">${ad.payment_method}</div>
+                                    ${currentProfile.kyc_status === 'verified' && ad.user_id !== currentUser.id ? `<button class="action-btn" onclick="showTradeConfirm('${ad.id}')">Sell</button>` : (ad.user_id === currentUser.id ? '<span class="status-badge status-open">Your ad</span>' : '')}
+                                </div>
+                            </div>
+                        </div>`;
+                });
+                html += '</div>';
+                container.innerHTML = html;
+            }
+            else if (currentTab === 'orders') {
+                if (myTrades.length === 0) {
+                    container.innerHTML =
+                        `<div class="empty-state">No orders yet. <button class="action-btn" onclick="switchTab('ads')" style="margin-top:12px;">Create an ad</button></div>`;
+                    return;
+                }
+                let html =
+                    `<div class="refresh-orders-btn"><button class="action-btn small" onclick="refreshOrders()">⟳ Refresh Orders</button></div><div class="orders-list">`;
+                for (const trade of myTrades) {
+                    const otherId = trade.user_id === currentUser.id ? trade.matched_user_id : trade.user_id;
+                    let otherName = (otherId && userCache[otherId]) ? userCache[otherId].first_name : 'User';
+                    const statusClass = `status-${trade.status}`;
+                    const isBuyer = trade.matched_user_id === currentUser.id && trade.type === 'sell';
+                    const isSeller = trade.user_id === currentUser.id && trade.type === 'sell';
+                    let actions = '';
+                    const escrowStatus = trade.escrow_status || 'pending';
+
+                    if (trade.status === 'escrowed' && isBuyer) {
+                        actions +=
+                            `<button class="action-btn small" data-trade="${trade.id}" data-action="fund" onclick="updateTradeStatus('${trade.id}','fund')">Fund Escrow</button>`;
+                    }
+                    if (trade.status === 'escrowed' && isSeller) {
+                        actions +=
+                            `<button class="action-btn small" data-trade="${trade.id}" data-action="paid" onclick="updateTradeStatus('${trade.id}','paid')">I've received payment</button>`;
+                    }
+                    if (trade.status === 'paid' && isBuyer) {
+                        actions +=
+                            `<button class="action-btn small" data-trade="${trade.id}" data-action="completed" onclick="updateTradeStatus('${trade.id}','completed')">Release Funds (Crossmint)</button>`;
+                    }
+                    if (['escrowed', 'paid'].includes(trade.status) && (isBuyer || isSeller)) {
+                        actions +=
+                            `<button class="action-btn small danger" data-trade="${trade.id}" data-action="disputed" onclick="updateTradeStatus('${trade.id}','disputed')">Dispute</button>`;
+                    }
+                    if (trade.status === 'open' && trade.user_id === currentUser.id) {
+                        actions = `<button class="action-btn small danger" onclick="cancelAd('${trade.id}')">Cancel Ad</button>`;
+                    }
+
+                    html += `
+                        <div class="order-card">
+                            <div class="card-row">
+                                <div><span class="status-badge ${statusClass}">${trade.status.toUpperCase()}</span></div>
+                                <div><strong>${trade.type.toUpperCase()} ${trade.amount} ${trade.asset_symbol}</strong> @ $${parseFloat(trade.price).toFixed(2)}</div>
+                                <div>Payment: ${trade.payment_method}</div>
+                                <div>Counterparty: ${otherName}</div>
+                                <div>${actions}</div>
+                            </div>
+                            <div class="escrow-status">
+                                Escrow: <span class="${escrowStatus}">${escrowStatus.toUpperCase()}</span>
+                                ${trade.escrow_address ? `<br><small>Contract: ${trade.escrow_address.slice(0, 10)}…</small>` : ''}
+                                ${trade.tx_hash ? `<br><small>TX: ${trade.tx_hash.slice(0, 10)}…</small>` : ''}
+                            </div>
+                        </div>`;
+                }
+                html += '</div>';
+                container.innerHTML = html;
+            }
+            else if (currentTab === 'ads') {
+                if (currentProfile.kyc_status !== 'verified') {
+                    container.innerHTML = `<div class="kyc-warning">Complete KYC to create ads.</div>`;
+                    return;
+                }
+                container.innerHTML = `
+                    <div class="create-form">
+                        <h3>Create New Ad (Price in USD)</h3>
+                        <p style="color:var(--text-muted); font-size:13px; margin-bottom:16px;">Your ad will be visible only to users in <strong>${userCountryCode}</strong>.</p>
+                        <select id="ad-type"><option value="sell">Sell</option><option value="buy">Buy</option></select>
+                        <select id="ad-coin">
+                            <option value="USDT">USDT</option>
+                            <option value="BTC">BTC</option>
+                            <option value="ETH">ETH</option>
+                            <option value="SOL">SOL</option>
+                            <option value="MATIC">MATIC</option>
+                            <option value="LINK">LINK</option>
+                            <option value="UNI">UNI</option>
+                        </select>
+                        <input type="number" id="ad-amount" placeholder="Amount (crypto)">
+                        <input type="number" id="ad-price" placeholder="Price per coin (USD)">
+                        <select id="ad-payment">
+                            <option value="Bank Transfer">Bank Transfer</option>
+                            <option value="PayPal">PayPal</option>
+                            <option value="Cash App">Cash App</option>
+                            <option value="Venmo">Venmo</option>
+                            <option value="M-Pesa">M-Pesa</option>
+                            <option value="Opay">Opay</option>
+                            <option value="PalmPay">PalmPay</option>
+                            <option value="Mobile Money">Mobile Money</option>
+                            <option value="SEPA">SEPA Transfer</option>
+                            <option value="Revolut">Revolut</option>
+                            <option value="UPI">UPI</option>
+                            <option value="Paytm">Paytm</option>
+                            <option value="Alipay">Alipay</option>
+                            <option value="WeChat Pay">WeChat Pay</option>
+                        </select>
+                        <button class="action-btn" onclick="createAd()" style="width:100%;">Post Ad</button>
+                    </div>`;
+            }
+        }
+
+        // ─── UI Helpers ──────────────────────────────────────────────────
+
+        function showTradeConfirm(adId) {
+            const ad = allTrades.find(t => t.id === adId);
+            if (!ad) return;
+            document.getElementById('confirm-details').innerText =
+                `You are about to ${ad.type === 'sell' ? 'buy' : 'sell'} ${ad.amount} ${ad.asset_symbol} at $${parseFloat(ad.price).toFixed(2)}.`;
+            document.getElementById('confirm-modal').style.display = 'flex';
+            document.getElementById('confirm-yes').onclick = async () => {
+                closeConfirmModal();
+                await initiateTrade(adId);
+            };
+        }
+
+        function closeConfirmModal() { document.getElementById('confirm-modal').style.display = 'none'; }
+
+        function applyFilters() { renderTab(); }
+
+        function switchTab(tab) {
+            currentTab = tab;
+            document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+            const tabBtn = document.querySelector(`[data-tab="${tab}"]`);
+            if (tabBtn) tabBtn.classList.add('active');
+            document.getElementById('filter-bar').style.display = (tab === 'buy' || tab === 'sell') ? 'flex' : 'none';
+            renderTab();
+        }
+
+        async function refreshOrders() { await loadData(); renderTab(); }
+
+        function logout() { supabaseClient.auth.signOut().then(() => window.location.href = './pl.html'); }
+
+        // ─── Initialisation ─────────────────────────────────────────────
+
+        async function init() {
+            await detectUserRegion();
+            const { data: { session } } = await supabaseClient.auth.getSession();
+            if (!session) { window.location.href = './pl.html'; return; }
+            currentUser = session.user;
+
+            const { data: profile } = await supabaseClient
+                .from('profiles')
+                .select('kyc_status, merchant, completed_trades_count, first_name')
+                .eq('id', currentUser.id)
+                .maybeSingle();
+            if (profile) currentProfile = { ...currentProfile, ...profile };
+
+            const displayName = currentProfile.first_name || currentUser.email.split('@')[0];
+            document.getElementById('user-fullname').textContent = displayName;
+            document.getElementById('user-email-display').textContent = currentUser.email;
+            document.getElementById('user-initials').textContent = (currentProfile.first_name ? currentProfile.first_name[0] : currentUser.email[0]).toUpperCase();
+
+            if (currentProfile.kyc_status !== 'verified') document.getElementById('kyc-warning').style.display = 'flex';
+
+            // Populate payment methods
+            const paymentSelect = document.getElementById('filter-payment');
+            const paymentMethods = ['Bank Transfer', 'PayPal', 'Cash App', 'Venmo', 'M-Pesa', 'Opay', 'PalmPay', 'Mobile Money', 'SEPA', 'Revolut', 'UPI', 'Paytm', 'Alipay', 'WeChat Pay'];
+            paymentMethods.forEach(m => {
+                const opt = document.createElement('option');
+                opt.value = m;
+                opt.textContent = m;
+                paymentSelect.appendChild(opt);
+            });
+
+            await loadData();
+            renderTab();
+
+            if (autoRefreshInterval) clearInterval(autoRefreshInterval);
+            autoRefreshInterval = setInterval(async () => {
+                if (currentTab === 'orders') { await loadData(); renderTab(); }
+            }, 10000);
+        }
+
+        // ─── Event Listeners ────────────────────────────────────────────
+        document.querySelectorAll('.tab').forEach(btn => {
+            btn.addEventListener('click', () => switchTab(btn.getAttribute('data-tab')));
+        });
+
+        // Start
+        init();
+    </script>
+
+    <!-- Include shared settings loader -->
+    <script src="settings.js"></script>
+</body>
+
+</html>
