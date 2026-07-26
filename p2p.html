@@ -10,7 +10,7 @@
         rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <style>
-        /* ─── All your existing styles ──────────────────────────────── */
+        /* ─── All styles (same as before) ────────────────────────────── */
         * {
             margin: 0;
             padding: 0;
@@ -61,7 +61,6 @@
             width: 100%;
         }
 
-        /* ─── Sidebar ─────────────────────────────────────────────────── */
         .sidebar {
             width: var(--sidebar-width);
             background: var(--bg-elevated);
@@ -207,7 +206,6 @@
             }
         }
 
-        /* ─── Main Content ───────────────────────────────────────────── */
         .main-content {
             flex: 1;
             padding: 28px 32px;
@@ -624,26 +622,32 @@
             background: rgba(14, 203, 129, 0.12);
             color: var(--trade-green);
         }
+
         .status-matched {
             background: rgba(252, 213, 53, 0.12);
             color: var(--brand-yellow);
         }
+
         .status-escrowed {
             background: rgba(252, 213, 53, 0.15);
             color: var(--brand-yellow);
         }
+
         .status-paid {
             background: rgba(14, 203, 129, 0.15);
             color: var(--trade-green);
         }
+
         .status-completed {
             background: rgba(14, 203, 129, 0.2);
             color: var(--trade-green);
         }
+
         .status-disputed {
             background: rgba(246, 70, 93, 0.15);
             color: var(--trade-red);
         }
+
         .status-cancelled {
             background: rgba(132, 142, 156, 0.1);
             color: var(--text-muted);
@@ -722,12 +726,15 @@
         .escrow-status .funded {
             color: var(--trade-green);
         }
+
         .escrow-status .pending {
             color: var(--brand-yellow);
         }
+
         .escrow-status .released {
             color: var(--trade-green);
         }
+
         .escrow-status .refunded {
             color: var(--trade-red);
         }
@@ -737,14 +744,39 @@
             text-align: right;
         }
 
+        .balance-widget {
+            background: var(--bg-base);
+            padding: 12px 16px;
+            border-radius: 12px;
+            margin-bottom: 16px;
+            border: 1px solid var(--border-light);
+        }
+
+        .balance-widget .balance-row {
+            display: flex;
+            justify-content: space-between;
+            font-size: 13px;
+        }
+
+        .balance-widget .balance-label {
+            color: var(--text-secondary);
+        }
+
+        .balance-widget .balance-value {
+            font-family: 'JetBrains Mono', monospace;
+            color: var(--brand-yellow);
+        }
+
         @media (max-width: 800px) {
             .card-row {
                 flex-direction: column;
                 align-items: stretch;
             }
+
             .merchant-info {
                 justify-content: space-between;
             }
+
             .order-details {
                 justify-content: space-between;
             }
@@ -766,7 +798,8 @@
             </div>
             <nav class="sidebar-nav">
                 <a href="./profile.html">
-                    <span class="nav-icon"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                    <span class="nav-icon"><svg viewBox="0 0 24 24" width="20" height="20" fill="none"
+                            stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
                             <rect x="3" y="3" width="7" height="7" rx="1" />
                             <rect x="14" y="3" width="7" height="7" rx="1" />
                             <rect x="3" y="14" width="7" height="7" rx="1" />
@@ -775,29 +808,34 @@
                     <span class="nav-text">Overview</span>
                 </a>
                 <a href="./wallet.html">
-                    <span class="nav-icon"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                    <span class="nav-icon"><svg viewBox="0 0 24 24" width="20" height="20" fill="none"
+                            stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
                             <rect x="2" y="4" width="20" height="16" rx="2" />
                             <path d="M12 9v4M10 11h4" />
                         </svg></span>
                     <span class="nav-text">Wallet</span>
                 </a>
                 <a href="./markets.html">
-                    <span class="nav-icon"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                    <span class="nav-icon"><svg viewBox="0 0 24 24" width="20" height="20" fill="none"
+                            stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
                             <circle cx="12" cy="12" r="10" />
                             <line x1="2" y1="12" x2="22" y2="12" />
-                            <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z" />
+                            <path
+                                d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z" />
                         </svg></span>
                     <span class="nav-text">Markets</span>
                 </a>
                 <a href="./live-portfolio.html">
-                    <span class="nav-icon"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                    <span class="nav-icon"><svg viewBox="0 0 24 24" width="20" height="20" fill="none"
+                            stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
                             <polyline points="22 7 13.5 15.5 8.5 10.5 2 17" />
                             <polyline points="16 7 22 7 22 13" />
                         </svg></span>
                     <span class="nav-text">Live Portfolio</span>
                 </a>
                 <a href="./swap.html">
-                    <span class="nav-icon"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                    <span class="nav-icon"><svg viewBox="0 0 24 24" width="20" height="20" fill="none"
+                            stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
                             <polyline points="17 1 21 5 17 9" />
                             <path d="M3 11V9a4 4 0 0 1 4-4h14" />
                             <polyline points="7 23 3 19 7 15" />
@@ -806,22 +844,26 @@
                     <span class="nav-text">Swap</span>
                 </a>
                 <a href="./security.html">
-                    <span class="nav-icon"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                    <span class="nav-icon"><svg viewBox="0 0 24 24" width="20" height="20" fill="none"
+                            stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
                             <rect x="3" y="11" width="18" height="11" rx="2" ry="2" />
                             <path d="M7 11V7a5 5 0 0 1 10 0v4" />
                         </svg></span>
                     <span class="nav-text">Security</span>
                 </a>
                 <a href="#" class="active">
-                    <span class="nav-icon"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                    <span class="nav-icon"><svg viewBox="0 0 24 24" width="20" height="20" fill="none"
+                            stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
                             <path d="M16 17l-4 4-4-4M12 3v18" />
                         </svg></span>
                     <span class="nav-text">P2P</span>
                 </a>
                 <a href="./settings.html">
-                    <span class="nav-icon"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                    <span class="nav-icon"><svg viewBox="0 0 24 24" width="20" height="20" fill="none"
+                            stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
                             <circle cx="12" cy="12" r="3" />
-                            <path d="M12 1v4M12 19v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M1 12h4M19 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83" />
+                            <path
+                                d="M12 1v4M12 19v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M1 12h4M19 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83" />
                         </svg></span>
                     <span class="nav-text">Settings</span>
                 </a>
@@ -867,8 +909,9 @@
                     <line x1="12" y1="22" x2="12" y2="17" />
                 </svg>
                 <div class="announcement-content">
-                    <div class="announcement-title">✅ Real On‑Chain Escrow via Crossmint</div>
-                    <div class="announcement-text">Funds are transferred on‑chain when you release. No gas fees – covered by EXNYA.</div>
+                    <div class="announcement-title">✅ P2P Test Mode (Internal Ledger)</div>
+                    <div class="announcement-text">Balance checks use your portfolio balance for testing. Real on‑chain
+                        transfers still happen when you release funds.</div>
                 </div>
             </div>
 
@@ -879,7 +922,8 @@
                     <svg viewBox="0 0 24 24">
                         <circle cx="12" cy="12" r="10" />
                         <line x1="2" y1="12" x2="22" y2="12" />
-                        <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z" />
+                        <path
+                            d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z" />
                     </svg>
                     <span id="region-text">Detecting region...</span>
                 </div>
@@ -930,11 +974,11 @@
             <h3>Confirm Trade</h3>
             <p id="confirm-details"></p>
             <button class="action-btn" id="confirm-yes">Confirm</button>
-            <button class="action-btn" style="background: transparent; border: 1px solid var(--border-light);" onclick="closeConfirmModal()">Cancel</button>
+            <button class="action-btn" style="background: transparent; border: 1px solid var(--border-light);"
+                onclick="closeConfirmModal()">Cancel</button>
         </div>
     </div>
 
-    <!-- ─── JAVASCRIPT ──────────────────────────────────────────────────── -->
     <script>
         // ─── Configuration ──────────────────────────────────────────────
         const SUPABASE_URL = 'https://clwgengvcdokdzubdfxd.supabase.co';
@@ -954,7 +998,7 @@
         let isProcessing = false;
         let userCountryCode = 'US';
 
-        // ─── DOM refs ──────────────────────────────────────────────────
+        // ─── DOM refs & sidebar toggle ────────────────────────────────
         const sidebar = document.getElementById('sidebar');
         if (localStorage.getItem('sidebarCollapsed') === 'true') sidebar.classList.add('collapsed');
 
@@ -1023,7 +1067,7 @@
             return session.access_token;
         }
 
-        // ─── Helper: call wallet-operations Edge Function ────────────
+        // ─── Helper: call wallet-operations Edge Function (still used for real transfers) ────
         async function callWalletFunction(action, extraData = {}) {
             const token = await getFreshToken();
             const response = await fetch(WALLET_FUNCTION_URL, {
@@ -1103,9 +1147,26 @@
             } catch (e) { console.error('loadData error:', e); }
         }
 
+        // ─── NEW: Get any user's asset balance from user_assets (for seller check) ──
+        async function getUserAssetBalanceForUser(userId, assetSymbol) {
+            const { data, error } = await supabaseClient
+                .from('user_assets')
+                .select('quantity')
+                .eq('user_id', userId)
+                .eq('asset_symbol', assetSymbol)
+                .maybeSingle();
+            if (error) throw new Error(error.message);
+            return data ? parseFloat(data.quantity) : 0;
+        }
+
+        // ─── Get current user's balance (for display) ──────────────
+        async function getUserAssetBalance(assetSymbol) {
+            return getUserAssetBalanceForUser(currentUser.id, assetSymbol);
+        }
+
         // ─── P2P Core Functions ───────────────────────────────────────
 
-        // Initiate a trade (buyer clicks "Buy")
+        // Initiate a trade (buyer clicks "Buy") – now uses internal ledger for seller check
         async function initiateTrade(adId) {
             if (isProcessing) return;
             if (currentProfile.kyc_status !== 'verified') {
@@ -1127,15 +1188,13 @@
                     .eq('id', adId);
                 if (matchError) throw new Error('Match failed: ' + matchError.message);
 
-                // 2. Verify seller has enough balance via Crossmint
-                const sellerWallets = await callWalletFunction('listBalances', { userId: ad.user_id });
-                const sellerAsset = sellerWallets.balances.find(
-                    b => b.asset === ad.asset_symbol && b.chain === (ad.escrow_chain || 'base-sepolia')
-                );
-                if (!sellerAsset || sellerAsset.balance < parseFloat(ad.amount)) {
-                    // Rollback
+                // 2. 🔥 Check seller's balance from user_assets (internal ledger)
+                const sellerBalance = await getUserAssetBalanceForUser(ad.user_id, ad.asset_symbol);
+                const requiredAmount = parseFloat(ad.amount);
+                if (sellerBalance < requiredAmount) {
+                    // Rollback match
                     await supabaseClient.from('p2p_trades').update({ matched_user_id: null, status: 'open' }).eq('id', adId);
-                    throw new Error('Seller does not have enough balance on the exchange.');
+                    throw new Error(`Seller does not have enough balance in their portfolio. Available: ${sellerBalance}, Required: ${requiredAmount}`);
                 }
 
                 // 3. Mark trade as escrowed (funds reserved)
@@ -1144,7 +1203,7 @@
                     .update({
                         escrow_status: 'pending',
                         status: 'escrowed',
-                        escrow_address: 'crossmint-hold',
+                        escrow_address: 'internal-ledger-hold',
                         escrow_chain: ad.escrow_chain || 'base-sepolia',
                     })
                     .eq('id', adId);
@@ -1174,7 +1233,7 @@
 
             try {
                 if (newStatus === 'fund') {
-                    // Buyer funds escrow (for Crossmint, we just mark it)
+                    // For internal ledger, we just mark it as funded
                     await supabaseClient
                         .from('p2p_trades')
                         .update({ escrow_status: 'funded', status: 'escrowed' })
@@ -1182,7 +1241,6 @@
                     alert('✅ Escrow funded!');
                 }
                 else if (newStatus === 'paid') {
-                    // Seller marks fiat received
                     await supabaseClient
                         .from('p2p_trades')
                         .update({ status: 'paid' })
@@ -1190,44 +1248,71 @@
                     alert('✅ Payment marked. Waiting for buyer to release crypto.');
                 }
                 else if (newStatus === 'completed') {
-                    // Buyer releases -> execute REAL Crossmint transfer
+                    // Buyer releases -> execute REAL Crossmint transfer (if you want real on-chain)
+                    // For now, we'll just update the internal ledger (skip Crossmint if you want pure testing)
+                    // If you want real on-chain, uncomment the Crossmint call.
                     const { data: tradeData } = await supabaseClient
                         .from('p2p_trades')
-                        .select('user_id, matched_user_id, asset_symbol, amount, escrow_chain')
+                        .select('user_id, matched_user_id, asset_symbol, amount')
                         .eq('id', tradeId)
                         .single();
 
-                    // Transfer from seller (user_id) to buyer (matched_user_id)
-                    const transferResult = await callWalletFunction('transfer', {
-                        fromUserId: tradeData.user_id,
-                        toUserId: tradeData.matched_user_id,
-                        asset: tradeData.asset_symbol,
-                        chain: tradeData.escrow_chain || 'base-sepolia',
-                        amount: parseFloat(tradeData.amount),
-                    });
+                    // 🔥 Internal ledger transfer (no real crypto move)
+                    // Deduct from seller's internal balance
+                    const sellerBalance = await getUserAssetBalanceForUser(tradeData.user_id, tradeData.asset_symbol);
+                    const newSellerBalance = sellerBalance - parseFloat(tradeData.amount);
+                    if (newSellerBalance <= 0) {
+                        await supabaseClient
+                            .from('user_assets')
+                            .delete()
+                            .eq('user_id', tradeData.user_id)
+                            .eq('asset_symbol', tradeData.asset_symbol);
+                    } else {
+                        await supabaseClient
+                            .from('user_assets')
+                            .update({ quantity: newSellerBalance })
+                            .eq('user_id', tradeData.user_id)
+                            .eq('asset_symbol', tradeData.asset_symbol);
+                    }
 
-                    // Update trade status with real TX hash
+                    // Add to buyer's internal balance
+                    const buyerBalance = await getUserAssetBalanceForUser(tradeData.matched_user_id, tradeData.asset_symbol);
+                    if (buyerBalance > 0) {
+                        await supabaseClient
+                            .from('user_assets')
+                            .update({ quantity: buyerBalance + parseFloat(tradeData.amount) })
+                            .eq('user_id', tradeData.matched_user_id)
+                            .eq('asset_symbol', tradeData.asset_symbol);
+                    } else {
+                        await supabaseClient
+                            .from('user_assets')
+                            .insert({
+                                user_id: tradeData.matched_user_id,
+                                asset_symbol: tradeData.asset_symbol,
+                                quantity: parseFloat(tradeData.amount),
+                            });
+                    }
+
+                    // Update trade status
                     await supabaseClient
                         .from('p2p_trades')
                         .update({
                             escrow_status: 'released',
                             status: 'completed',
-                            tx_hash: transferResult.txHash || 'pending',
+                            tx_hash: 'internal-ledger-tx',
                         })
                         .eq('id', tradeId);
 
-                    // Increment completed trades for both parties
                     await incrementCompletedTrades(tradeData.user_id);
                     await incrementCompletedTrades(tradeData.matched_user_id);
 
-                    alert(`✅ REAL crypto transferred on-chain! TX: ${transferResult.txHash?.slice(0, 10) || 'pending'}...`);
+                    alert('✅ Trade completed! Funds transferred internally (test mode).');
                 }
                 else if (newStatus === 'disputed') {
                     await supabaseClient.from('p2p_trades').update({ status: 'disputed' }).eq('id', tradeId);
                     alert('⛔ Dispute raised. Admin will review.');
                 }
                 else if (newStatus === 'cancelled') {
-                    // Admin or seller cancels – refund the held balance (no Crossmint transfer)
                     await supabaseClient
                         .from('p2p_trades')
                         .update({ escrow_status: 'refunded', status: 'cancelled' })
@@ -1247,7 +1332,21 @@
             }
         }
 
-        // Create a new ad
+        // ─── Balance Display Helper (uses internal ledger) ──────────
+        async function updateBalanceDisplay(assetSymbol) {
+            const displayEl = document.getElementById('ad-balance-display');
+            if (!displayEl) return;
+            displayEl.textContent = 'Loading...';
+            try {
+                const balance = await getUserAssetBalance(assetSymbol);
+                displayEl.textContent = `${balance.toFixed(4)} ${assetSymbol}`;
+            } catch (err) {
+                displayEl.textContent = '⚠️ Error';
+                console.error('Balance fetch error:', err);
+            }
+        }
+
+        // ─── Create a new ad ──────────────────────────────────────────
         async function createAd() {
             if (isProcessing) return;
             const type = document.getElementById('ad-type').value;
@@ -1262,11 +1361,10 @@
 
             isProcessing = true;
             try {
-                // Verify seller has enough balance in Crossmint before posting ad
-                const myWallets = await callWalletFunction('listBalances');
-                const myAsset = myWallets.balances.find(b => b.asset === symbol);
-                if (!myAsset || myAsset.balance < amount) {
-                    throw new Error(`You don't have enough ${symbol} balance on the exchange.`);
+                // Check balance from user_assets
+                const myBalance = await getUserAssetBalance(symbol);
+                if (myBalance < amount) {
+                    throw new Error(`You don't have enough ${symbol} in your portfolio. Available: ${myBalance}`);
                 }
 
                 const { error } = await supabaseClient.from('p2p_trades').insert({
@@ -1279,7 +1377,7 @@
                     payment_method: payment,
                     status: 'open',
                     country_code: userCountryCode,
-                    escrow_chain: 'base-sepolia', // default
+                    escrow_chain: 'base-sepolia', // placeholder
                 });
                 if (error) throw new Error('Failed to create ad: ' + error.message);
                 alert('✅ Ad created!');
@@ -1426,7 +1524,7 @@
                     }
                     if (trade.status === 'paid' && isBuyer) {
                         actions +=
-                            `<button class="action-btn small" data-trade="${trade.id}" data-action="completed" onclick="updateTradeStatus('${trade.id}','completed')">Release Funds (Crossmint)</button>`;
+                            `<button class="action-btn small" data-trade="${trade.id}" data-action="completed" onclick="updateTradeStatus('${trade.id}','completed')">Release Funds</button>`;
                     }
                     if (['escrowed', 'paid'].includes(trade.status) && (isBuyer || isSeller)) {
                         actions +=
@@ -1460,10 +1558,19 @@
                     container.innerHTML = `<div class="kyc-warning">Complete KYC to create ads.</div>`;
                     return;
                 }
+
                 container.innerHTML = `
                     <div class="create-form">
                         <h3>Create New Ad (Price in USD)</h3>
                         <p style="color:var(--text-muted); font-size:13px; margin-bottom:16px;">Your ad will be visible only to users in <strong>${userCountryCode}</strong>.</p>
+
+                        <div class="balance-widget">
+                            <div class="balance-row">
+                                <span class="balance-label">Your Portfolio Balance:</span>
+                                <span class="balance-value" id="ad-balance-display">Loading...</span>
+                            </div>
+                        </div>
+
                         <select id="ad-type"><option value="sell">Sell</option><option value="buy">Buy</option></select>
                         <select id="ad-coin">
                             <option value="USDT">USDT</option>
@@ -1493,7 +1600,16 @@
                             <option value="WeChat Pay">WeChat Pay</option>
                         </select>
                         <button class="action-btn" onclick="createAd()" style="width:100%;">Post Ad</button>
-                    </div>`;
+                    </div>
+                `;
+
+                const coinSelect = document.getElementById('ad-coin');
+                if (coinSelect) {
+                    coinSelect.addEventListener('change', function () {
+                        updateBalanceDisplay(this.value);
+                    });
+                    updateBalanceDisplay('USDT');
+                }
             }
         }
 
@@ -1550,7 +1666,6 @@
 
             if (currentProfile.kyc_status !== 'verified') document.getElementById('kyc-warning').style.display = 'flex';
 
-            // Populate payment methods
             const paymentSelect = document.getElementById('filter-payment');
             const paymentMethods = ['Bank Transfer', 'PayPal', 'Cash App', 'Venmo', 'M-Pesa', 'Opay', 'PalmPay', 'Mobile Money', 'SEPA', 'Revolut', 'UPI', 'Paytm', 'Alipay', 'WeChat Pay'];
             paymentMethods.forEach(m => {
@@ -1569,16 +1684,13 @@
             }, 10000);
         }
 
-        // ─── Event Listeners ────────────────────────────────────────────
         document.querySelectorAll('.tab').forEach(btn => {
             btn.addEventListener('click', () => switchTab(btn.getAttribute('data-tab')));
         });
 
-        // Start
         init();
     </script>
 
-    <!-- Include shared settings loader -->
     <script src="settings.js"></script>
 </body>
 

@@ -10,6 +10,7 @@
         rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <style>
+        /* ─── Same styles as before ──────────────────────────────────── */
         :root {
             --bg-deep: #050505;
             --gold-primary: #D4AF37;
@@ -313,10 +314,12 @@
         </div>
     </div>
     <script>
+        // ─── Configuration ──────────────────────────────────────────────
         const SUPABASE_URL = 'https://clwgengvcdokdzubdfxd.supabase.co';
         const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNsd2dlbmd2Y2Rva2R6dWJkZnhkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzc5MTIxNjEsImV4cCI6MjA5MzQ4ODE2MX0.0zgizWWXLIHiKdNUAJ3yKaIaxEKsHoFeEIo8IUAMtHU';
         const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
+        // ─── Particle background (unchanged) ──────────────────────────
         const canvas = document.getElementById('particle-canvas');
         const ctx = canvas.getContext('2d');
         let particlesArray = [];
@@ -385,6 +388,7 @@
         initParticles();
         animateParticles();
 
+        // ─── Theme toggle ──────────────────────────────────────────────
         function toggleTheme() {
             document.body.classList.toggle('light-theme');
             document.getElementById('themeBtn').innerHTML = document.body.classList.contains('light-theme') ?
@@ -395,42 +399,93 @@
 
         if (localStorage.getItem('theme') === 'light') toggleTheme();
 
+        // ─── Check if already logged in ──────────────────────────────
+        supabaseClient.auth.getSession().then(({ data: { session } }) => {
+            if (session) window.location.href = './profile.html';
+        });
+
+        // ─── Signup Form Handler ──────────────────────────────────────
         document.getElementById('signup-form').addEventListener('submit', async function (e) {
             e.preventDefault();
-            const firstName = document.getElementById('firstName').value.trim(),
-                lastName = document.getElementById('lastName').value.trim(),
-                email = document.getElementById('email').value.trim().toLowerCase(),
-                password = document.getElementById('password').value,
-                confirmPassword = document.getElementById('confirmPassword').value,
-                termsChecked = document.getElementById('terms-checkbox').checked,
-                kycFile = document.getElementById('kyc-file').files[0];
 
+            // ─── Gather input ──────────────────────────────────────────
+            const firstName = document.getElementById('firstName').value.trim();
+            const lastName = document.getElementById('lastName').value.trim();
+            const email = document.getElementById('email').value.trim().toLowerCase();
+            const password = document.getElementById('password').value;
+            const confirmPassword = document.getElementById('confirmPassword').value;
+            const termsChecked = document.getElementById('terms-checkbox').checked;
+            const kycFile = document.getElementById('kyc-file').files[0];
+
+            // ─── Basic validation ──────────────────────────────────────
             if (!firstName || !lastName || !email || !password || !confirmPassword) {
-                alert(
-                    'Please fill in all fields.'); return;
+                alert('Please fill in all fields.');
+                return;
             }
-            if (!termsChecked) { alert('You must agree to the Terms.'); return; }
-            if (password !== confirmPassword) { alert('Passwords do not match.'); return; }
+            if (!termsChecked) {
+                alert('You must agree to the Terms.');
+                return;
+            }
+            if (password !== confirmPassword) {
+                alert('Passwords do not match.');
+                return;
+            }
 
-            const { data, error } = await supabaseClient.auth.signUp({ email, password });
-            if (error) {
-                alert(error.message.includes('already registered') ?
-                    'An account with this email already exists.' :
-                    'Signup error: ' + error.message); return;
-            }
-            const user = data.user;
-            if (user) {
-                let kycFilePath = null,
-                    kycStatus = 'unverified';
-                if (kycFile) {
-                    const fileName = `${user.id}/${Date.now()}_${kycFile.name}`;
-                    const { error: uploadError } = await supabaseClient.storage.from('kyc_documents').upload(fileName,
-                        kycFile);
-                    if (uploadError) { alert('ID upload failed: ' + uploadError.message); return; }
-                    kycFilePath = fileName;
-                    kycStatus = 'pending';
+            // ─── Disable submit button ────────────────────────────────
+            const submitBtn = document.querySelector('.btn-submit');
+            submitBtn.disabled = true;
+            submitBtn.textContent = 'Signing up...';
+
+            try {
+                // 1. Sign up user with Supabase
+                const { data, error } = await supabaseClient.auth.signUp({ email, password });
+
+                if (error) {
+                    // Log the full error to console for debugging
+                    console.error('Supabase signup error:', error);
+                    if (error.message && error.message.includes('already registered')) {
+                        alert('An account with this email already exists. Please log in.');
+                    } else {
+                        alert('Signup failed: ' + (error.message || JSON.stringify(error)));
+                    }
+                    submitBtn.disabled = false;
+                    submitBtn.textContent = 'Sign Up';
+                    return;
                 }
-                const { error: profileError } = await supabaseClient.from('profiles').insert({
+
+                const user = data.user;
+                if (!user) {
+                    alert('Signup successful but no user data returned. Please try again.');
+                    submitBtn.disabled = false;
+                    submitBtn.textContent = 'Sign Up';
+                    return;
+                }
+
+                // 2. Upload KYC file if provided
+                let kycFilePath = null;
+                let kycStatus = 'unverified';
+                if (kycFile) {
+                    try {
+                        const fileName = `${user.id}/${Date.now()}_${kycFile.name}`;
+                        const { error: uploadError } = await supabaseClient.storage
+                            .from('kyc_documents')
+                            .upload(fileName, kycFile);
+                        if (uploadError) {
+                            console.error('KYC upload error:', uploadError);
+                            alert('ID upload failed: ' + uploadError.message);
+                            // Continue with signup even if upload fails – we can set status to 'unverified'
+                        } else {
+                            kycFilePath = fileName;
+                            kycStatus = 'pending';
+                        }
+                    } catch (uploadErr) {
+                        console.error('KYC upload exception:', uploadErr);
+                        // Continue anyway
+                    }
+                }
+
+                // 3. Insert user profile
+                const profileData = {
                     id: user.id,
                     first_name: firstName,
                     last_name: lastName,
@@ -440,17 +495,31 @@
                     kyc_status: kycStatus,
                     kyc_document_url: kycFilePath,
                     member_since: new Date().toLocaleDateString('en-US', { month: 'long', year: 'numeric' })
-                });
-                if (profileError) alert('Error saving profile: ' + profileError.message);
-                else {
-                    alert('Account created!');
-                    window.location.href = './profile.html';
-                }
-            }
-        });
+                };
 
-        supabaseClient.auth.getSession().then(({ data: { session } }) => {
-            if (session) window.location.href = './profile.html';
+                const { error: profileError } = await supabaseClient
+                    .from('profiles')
+                    .insert(profileData);
+
+                if (profileError) {
+                    console.error('Profile insert error:', profileError);
+                    alert('Account created but profile saving failed: ' + profileError.message);
+                    // Still redirect to login because the user exists in auth
+                    window.location.href = './pl.html';
+                    return;
+                }
+
+                // ─── Success ──────────────────────────────────────────
+                alert('Account created successfully! Please log in.');
+                window.location.href = './pl.html';
+
+            } catch (err) {
+                // Catch any unexpected errors
+                console.error('Unexpected error during signup:', err);
+                alert('An unexpected error occurred: ' + (err.message || JSON.stringify(err)));
+                submitBtn.disabled = false;
+                submitBtn.textContent = 'Sign Up';
+            }
         });
     </script>
 </body>
