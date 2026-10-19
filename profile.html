@@ -608,7 +608,12 @@
             const { data: { session } } = await supabaseClient.auth.getSession();
             if (!session) { window.location.href = './pl.html'; return; }
             currentUser = session.user;
-            const { data: profile } = await supabaseClient.from('profiles').select('*').eq('id', currentUser.id).single();
+            const { data: profile, error: profileError } = await supabaseClient.from('profiles').select('first_name,last_name,kyc_status,kyc_document_url,member_since').eq('id', currentUser.id).maybeSingle();
+            if (profileError || !profile) {
+                console.error('Profile load failed:', profileError);
+                alert('Your account profile could not be loaded. Please refresh or sign in again.');
+                return;
+            }
             const firstName = profile?.first_name || '',
                 lastName = profile?.last_name || '',
                 fullName = `${firstName} ${lastName}`.trim() || currentUser.email;
@@ -639,7 +644,8 @@
                     'Your identity has been verified.';
             }
 
-            const { data: assets } = await supabaseClient.from('user_assets').select('*').eq('user_id', currentUser.id);
+            const { data: assets, error: assetsError } = await supabaseClient.from('user_assets').select('asset_symbol,quantity').eq('user_id', currentUser.id);
+            if (assetsError) console.warn('Assets could not be loaded:', assetsError.message);
             if (!assets || assets.length === 0) {
                 document.getElementById('assets-body').innerHTML =
                     '<tr><td colspan="3" style="text-align:center;color:var(--text-muted);">No assets yet.</td></tr>';
