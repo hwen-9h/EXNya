@@ -626,14 +626,14 @@
             <div class="logo">
                 <a href="./index.html">
                     <img src="WhatsApp Image 2026-04-03 at 4.24.59 AM.jpeg" alt="EXNYA" class="dark-logo">
-                    <img src="" alt="EXNYA" class="light-logo">
+                    <img src="WhatsApp Image 2026-04-03 at 4.24.59 AM.jpeg" alt="EXNYA" class="light-logo">
                 </a>
             </div>
             <div class="nav-links">
-                <a href="#">Buy Crypto</a>
-                <a href="#">Markets</a>
-                <a href="#">Trade</a>
-                <a href="#">Staking</a>
+                <a href="./signup.html">Buy Crypto</a>
+                <a href="#markets">Markets</a>
+                <a href="./pl.html">Trade</a>
+                <a href="#features">Staking</a>
                 <a href="#">OTC</a>
                 <a href="./abut.html">About</a>
             </div>
@@ -641,7 +641,7 @@
         <div class="nav-right">
             <button class="theme-btn" onclick="toggleTheme()" id="themeBtn"><span>☀️</span> Light</button>
             <a href="./pl.html"><button class="btn-text">Log In</button></a>
-            <a href="./xx .html"><button class="btn-primary">Sign Up</button></a>
+            <a href="./signup.html"><button class="btn-primary">Sign Up</button></a>
         </div>
     </nav>
 
@@ -649,13 +649,12 @@
         <div class="hero-content reveal">
             <span class="hero-tag">🚀 BTC Trading — Zero Fees</span>
             <h1 class="hero-title">Your Gateway to Global Crypto Markets</h1>
-            <p class="hero-subtitle">Trade with confidence on the world's most intuitive exchange. Deep liquidity,
-                institutional‑grade security, and zero‑fee BTC trading.</p>
-            <a href="./xx .html"><button class="btn-primary" style="padding:12px 24px; font-size:16px;">Get
+            <p class="hero-subtitle">Explore crypto markets and manage your account from one place. Prices are indicative only; this homepage does not execute purchases or trades.</p>
+            <a href="./signup.html"><button class="btn-primary" style="padding:12px 24px; font-size:16px;">Get
                     Started</button></a>
         </div>
         <div class="exchange-widget reveal">
-            <div class="widget-title">Instant Buy</div>
+            <div class="widget-title">BTC Calculator</div>
             <div class="input-group">
                 <div>
                     <div class="input-label">Spend</div>
@@ -671,7 +670,7 @@
                 <div class="currency-badge" style="background:rgba(252,213,53,0.2); color:var(--brand-yellow);">₿ BTC
                 </div>
             </div>
-            <a href="./xx .html"><button class="btn-primary widget-btn">Buy BTC</button></a>
+            <a href="./signup.html"><button class="btn-primary widget-btn">Create account to continue</button></a>
         </div>
     </section>
 
@@ -855,34 +854,63 @@
                     </td>
                     <td id="price-${coin.id}">$${coin.price.toLocaleString('en-US', { minimumFractionDigits: 2 })}</td>
                     <td id="change-${coin.id}" class="${isUp ? 'price-up' : 'price-down'}">${isUp ? '+' : ''}${coin.change.toFixed(2)}%</td>
-                    <td>${coin.vol}</td>
-                    <td style="text-align:right;"><button class="trade-btn">Trade</button></td>
+                    <td id="volume-${coin.id}">${coin.vol}</td>
+                    <td style="text-align:right;"><button class="trade-btn" type="button" onclick="window.location.href=\'./pl.html\'">Trade</button></td>
                 `;
                 tbody.appendChild(row);
             });
         }
         renderTable();
 
-        setInterval(() => {
-            const idx = Math.floor(Math.random() * coins.length);
-            if (coins[idx].symbol === 'USDT') return;
-            const coin = coins[idx],
-                oldPrice = coin.price;
-            const fluctuation = 1 + ((Math.random() * 0.25 - 0.1) / 100);
-            coin.price *= fluctuation;
-            coin.change += Math.random() * 0.12 - 0.06;
-            if (coin.id === 'btc') currentBtcPrice = coin.price;
-            const priceEl = document.getElementById(`price-${coin.id}`),
-                changeEl = document.getElementById(`change-${coin.id}`);
-            if (!priceEl || !changeEl) return;
-            const isUp = coin.change >= 0;
-            priceEl.innerText = `$${coin.price.toLocaleString('en-US', { minimumFractionDigits: 2 })}`;
-            changeEl.innerText = `${isUp ? '+' : ''}${coin.change.toFixed(2)}%`;
-            changeEl.className = isUp ? 'price-up' : 'price-down';
-            priceEl.classList.remove('flash-up', 'flash-down');
-            void priceEl.offsetWidth;
-            priceEl.classList.add(coin.price > oldPrice ? 'flash-up' : 'flash-down');
-        }, 2200);
+        const marketIds = { btc: 'bitcoin', eth: 'ethereum', sol: 'solana', usdt: 'tether', ada: 'cardano' };
+        const marketEndpoint = 'https://api.coingecko.com/api/v3/simple/price?ids=bitcoin,ethereum,solana,tether,cardano&vs_currencies=usd&include_24hr_change=true&include_24hr_vol=true';
+        const marketStatus = document.getElementById('market-status');
+        function formatUsd(value) {
+            return '$' + Number(value).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: value < 1 ? 6 : 2 });
+        }
+        async function refreshMarketPrices() {
+            try {
+                const response = await fetch(marketEndpoint, { headers: { accept: 'application/json' } });
+                if (!response.ok) throw new Error('Market provider returned HTTP ' + response.status);
+                const data = await response.json();
+                const updatedAt = new Date();
+                coins.forEach(coin => {
+                    const item = data[marketIds[coin.id]];
+                    if (!item || !Number.isFinite(item.usd)) return;
+                    const oldPrice = coin.price;
+                    coin.price = item.usd;
+                    if (Number.isFinite(item.usd_24h_change)) coin.change = item.usd_24h_change;
+                    if (Number.isFinite(item.usd_24h_vol)) coin.vol = '$' + (item.usd_24h_vol / 1e9).toFixed(2) + 'B';
+                    if (coin.id === 'btc') currentBtcPrice = coin.price;
+                    const priceEl = document.getElementById('price-' + coin.id);
+                    const changeEl = document.getElementById('change-' + coin.id);
+                    const volumeEl = document.getElementById('volume-' + coin.id);
+                    if (priceEl) {
+                        priceEl.textContent = formatUsd(coin.price);
+                        priceEl.classList.remove('flash-up', 'flash-down');
+                        if (oldPrice !== coin.price) {
+                            void priceEl.offsetWidth;
+                            priceEl.classList.add(coin.price > oldPrice ? 'flash-up' : 'flash-down');
+                        }
+                    }
+                    if (changeEl) {
+                        const isUp = coin.change >= 0;
+                        changeEl.textContent = (isUp ? '+' : '') + coin.change.toFixed(2) + '%';
+                        changeEl.className = isUp ? 'price-up' : 'price-down';
+                    }
+                    if (volumeEl) volumeEl.textContent = coin.vol;
+                });
+                const amount = Number(spendInput.value.replace(/,/g, ''));
+                receiveInput.value = Number.isFinite(amount) && amount > 0 ? (amount / currentBtcPrice).toFixed(8) : '0.00000000';
+                if (marketStatus) marketStatus.textContent = 'Market data updated ' + updatedAt.toLocaleTimeString() + ' · Indicative only';
+            } catch (error) {
+                console.warn('Market feed unavailable:', error);
+                if (marketStatus) marketStatus.textContent = 'Live market feed unavailable — values may be outdated.';
+            }
+        }
+        renderTable();
+        refreshMarketPrices();
+        window.setInterval(refreshMarketPrices, 60000);
     </script>
 
 </body>
