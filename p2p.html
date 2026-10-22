@@ -1648,9 +1648,9 @@
 
         async function init() {
             await detectUserRegion();
-            const { data: { session } } = await supabaseClient.auth.getSession();
-            if (!session) { window.location.href = './pl.html'; return; }
-            currentUser = session.user;
+            const auth = await App.requireVerifiedSession();
+            if (!auth) return;
+            currentUser = auth.user;
 
             const { data: profile } = await supabaseClient
                 .from('profiles')
@@ -1667,7 +1667,12 @@
             if (currentProfile.kyc_status !== 'verified') document.getElementById('kyc-warning').style.display = 'flex';
 
             const paymentSelect = document.getElementById('filter-payment');
-            const paymentMethods = ['Bank Transfer', 'PayPal', 'Cash App', 'Venmo', 'M-Pesa', 'Opay', 'PalmPay', 'Mobile Money', 'SEPA', 'Revolut', 'UPI', 'Paytm', 'Alipay', 'WeChat Pay'];
+            const paymentMethods = ['Bank Transfer', 'PayPal', 'Cash App', 'Venmo', 'M-Pesa', 'Opay', 'PalmPay',
+                'Mobile Money', 'SEPA', 'Revolut', 'UPI', 'Paytm', 'Alipay', 'WeChat Pay'];
+            const allOption = document.createElement('option');
+            allOption.value = '';
+            allOption.textContent = 'All Payments';
+            paymentSelect.appendChild(allOption);
             paymentMethods.forEach(m => {
                 const opt = document.createElement('option');
                 opt.value = m;
@@ -1688,9 +1693,16 @@
             btn.addEventListener('click', () => switchTab(btn.getAttribute('data-tab')));
         });
 
+        // The 10s order poll kept firing after sign-out and after navigating away
+        // (bfcache), painting stale rows and re-requesting data as a signed-out user.
+        window.addEventListener('pagehide', () => {
+            if (autoRefreshInterval) { clearInterval(autoRefreshInterval); autoRefreshInterval = null; }
+        });
+
         init();
     </script>
 
+    <script src="app-base.js"></script>
     <script src="settings.js"></script>
 </body>
 

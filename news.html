@@ -324,6 +324,7 @@
                 <a href="./news.html">News</a>
                 <a href="./security.html">Security</a>
                 <a href="#" class="active">P2P</a>
+                <a href="./settings.html">Settings</a>
             </nav>
         </aside>
         <div class="mobile-toggle" id="mobile-toggle" onclick="toggleSidebar()"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg></div>
@@ -449,10 +450,9 @@
         // Main initialization
         async function init() {
             try {
-                const { data: { session }, error: sessionError } = await supabaseClient.auth.getSession();
-                if (sessionError) throw sessionError;
-                if (!session) { window.location.href = './pl.html'; return; }
-                currentUser = session.user;
+                const auth = await App.requireVerifiedSession();
+                if (!auth) return;
+                currentUser = auth.user;
 
                 const { data: profile, error: profileError } = await supabaseClient
                     .from('profiles')
@@ -808,8 +808,14 @@
         }
 
         function logout() {
+            if (autoRefreshInterval) { clearInterval(autoRefreshInterval); autoRefreshInterval = null; }
             supabaseClient.auth.signOut().then(() => window.location.href = './pl.html');
         }
+
+        // The 10s order poll used to survive sign-out and page navigation.
+        window.addEventListener('pagehide', () => {
+            if (autoRefreshInterval) { clearInterval(autoRefreshInterval); autoRefreshInterval = null; }
+        });
 
         document.addEventListener('DOMContentLoaded', () => {
             document.querySelectorAll('.tab').forEach(btn => {
@@ -818,5 +824,7 @@
             init();
         });
     </script>
+    <script src="app-base.js"></script>
+    <script src="settings.js"></script>
 </body>
 </html>

@@ -699,9 +699,9 @@
         }
 
         async function init() {
-            const { data: { session } } = await supabaseClient.auth.getSession();
-            if (!session) { window.location.href = './pl.html'; return; }
-            currentUser = session.user;
+            const auth = await App.requireSession();
+            if (!auth) return;
+            currentUser = auth.user;
             document.getElementById('user-initials').textContent = (currentUser.email[0] || 'U').toUpperCase();
             document.getElementById('user-fullname').textContent = currentUser.email;
             document.getElementById('user-email-display').textContent = currentUser.email;
@@ -764,6 +764,7 @@
 
         init();
     </script>
+    <script src="app-base.js"></script>
     <script src="settings.js"></script>
 </body>
 

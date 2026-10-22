@@ -21,7 +21,9 @@ function applySettings(settings) {
     document.documentElement.style.setProperty('--border-light', isDark ? '#1e2733' : '#d0d7de');
     document.documentElement.style.setProperty('--border-subtle', isDark ? '#151d27' : '#e5e9f0');
 
-    document.documentElement.style.fontSize = settings.fontSize + 'px';
+    // Guard against a bad stored value blanking the whole page's type scale.
+    const size = Number(settings.fontSize);
+    document.documentElement.style.fontSize = (isFinite(size) && size >= 10 && size <= 24 ? size : 14) + 'px';
 
     window.__APP_CURRENCY = settings.currency;
     const symbols = { USD: '$', EUR: '€', GBP: '£', NGN: '₦' };
@@ -35,6 +37,11 @@ function applySettings(settings) {
 
 // ─── Load settings from Supabase ─────────────────────────────────────
 async function loadUserSettings() {
+    // Runs on page load, before some pages have booted their client.
+    if (!window.supabaseClient) {
+        applySettings(DEFAULT_SETTINGS);
+        return;
+    }
     const { data: { session } } = await window.supabaseClient.auth.getSession();
     if (!session) {
         applySettings(DEFAULT_SETTINGS);

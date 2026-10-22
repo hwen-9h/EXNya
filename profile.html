@@ -664,7 +664,7 @@
         // ─── Load profile ──────────────────────────────────────────────
         async function loadProfile() {
             try {
-                const auth = await App.requireSession();
+                const auth = await App.requireVerifiedSession();
                 if (!auth) return;
                 currentUser = auth.user;
 

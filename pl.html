@@ -9,7 +9,7 @@
         href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600&family=Sora:wght@400;600;700&display=swap"
         rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <script src="https://cdn.jsdelivr.net/npm/@emailjs/browser@3/dist/email.min.js"></script>
+    <!-- OTP mail is sent by the send-otp Edge Function; the emailjs bundle is no longer used. -->
     <style>
         * {
             margin: 0;
@@ -172,9 +172,14 @@
             <div class="form-group"><label>Verification Code</label><input type="text" id="otp-input"
                     placeholder="000 000" maxlength="6" inputmode="numeric"></div><button class="btn btn-primary"
                 id="verify-btn" onclick="handleVerifyOTP()">Verify</button>
+            <button class="btn" style="background:transparent;color:#5e6a7a;margin-top:8px;" id="resend-btn"
+                onclick="resendOtp()">Resend code</button>
             <p class="error-msg" id="otp-error"></p><button class="btn"
                 style="background:transparent;color:#5e6a7a;margin-top:12px;" onclick="goBackToPassword()">←
                 Back</button>
+        </div>
+        <div style="margin-top:18px;font-size:13px;color:#5e6a7a;">No account yet?
+            <a href="./signup.html" style="color:#fcd535;text-decoration:none;">Create one</a>
         </div>
     </div>
     
@@ -183,6 +188,31 @@ const SUPABASE_URL = 'https://clwgengvcdokdzubdfxd.supabase.co';
 const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNsd2dlbmd2Y2Rva2R6dWJkZnhkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzc5MTIxNjEsImV4cCI6MjA5MzQ4ODE2MX0.0zgizWWXLIHiKdNUAJ3yKaIaxEKsHoFeEIo8IUAMtHU';
 const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 let currentUser = null;
+
+// 2FA gate. Every dashboard page treats "signed in" as good enough, so an
+// account with 2FA on could dodge the code by opening ./profile.html directly
+// (and by simply reloading, since nothing recorded that this session passed).
+// Pages call App.isOtpVerified() and bounce back here when it returns false.
+const OTP_KEY = 'exnya_otp_verified';
+
+function markOtpVerified(userId) {
+    try { sessionStorage.setItem(OTP_KEY, userId || 'verified'); } catch (e) { /* private mode */ }
+}
+
+async function clearOtpVerified() {
+    try { sessionStorage.removeItem(OTP_KEY); } catch (e) { /* ignore */ }
+    // A previous session's proof must not unlock this one.
+    await supabaseClient.auth.signOut();
+}
+
+// Remember on this (2FA) page that the code was already entered, so resuming a
+// session here lands on the dashboard instead of immediately resending a code.
+function markOtpPendingFor(userId) {
+    try { sessionStorage.setItem('exnya_otp_pending', userId || ''); } catch (e) { /* ignore */ }
+}
+function otpPendingFor(userId) {
+    try { return (sessionStorage.getItem('exnya_otp_pending') || '') === (userId || ''); } catch (e) { return false; }
+}
 
 function showError(id, message) { document.getElementById(id).textContent = message || ''; }
 function setBusy(button, busy, label) { button.disabled = busy; button.textContent = label; }
@@ -210,7 +240,7 @@ async function handleLogin() {
     if (!email || !password) { showError('login-error', 'Please enter both email and password.'); return; }
     setBusy(button, true, 'Signing in…');
     try {
-        localStorage.removeItem('exnya_otp_verified');
+        await clearOtpVerified();
         const { data, error } = await supabaseClient.auth.signInWithPassword({ email, password });
         if (error) { showError('login-error', error.message); return; }
         currentUser = data.user;
@@ -218,6 +248,7 @@ async function handleLogin() {
             .select('is_2fa_enabled').eq('id', currentUser.id).maybeSingle();
         if (profileError) { showError('login-error', 'Could not load account security settings.'); await supabaseClient.auth.signOut(); return; }
         if (!profile || !profile.is_2fa_enabled) { window.location.href = './profile.html'; return; }
+        markOtpPendingFor(currentUser.id);
         const sent = await requestOtp(email);
         if (!sent) {
             await supabaseClient.auth.signOut();
@@ -243,7 +274,7 @@ async function handleVerifyOTP() {
             showError('otp-error', (data && data.error) || (error && error.message) || 'Invalid or expired code.');
             return;
         }
-        localStorage.setItem('exnya_otp_verified', currentUser ? currentUser.id : 'verified');
+        markOtpVerified(currentUser ? currentUser.id : 'verified');
         window.location.href = './profile.html';
     } catch (error) {
         showError('otp-error', error.message || 'Verification failed. Please try again.');
@@ -252,10 +283,27 @@ async function handleVerifyOTP() {
     }
 }
 
-function goBackToPassword() {
+async function goBackToPassword() {
     document.getElementById('step-otp').classList.add('hidden');
     document.getElementById('step-password').classList.remove('hidden');
     showError('otp-error', '');
+    // Going back means abandoning this attempt: sign out so the half-finished
+    // session cannot be used to open the dashboard.
+    await clearOtpVerified();
+    currentUser = null;
+}
+
+// Link back to signup: the page had no way out to account creation.
+function goToSignup() { window.location.href = './signup.html'; }
+
+async function resendOtp() {
+    if (!currentUser) { goBackToPassword(); return; }
+    const button = document.getElementById('resend-btn');
+    setBusy(button, true, 'Sending…');
+    markOtpPendingFor(currentUser.id);
+    const ok = await requestOtp(currentUser.email);
+    setBusy(button, false, 'Resend code');
+    if (ok) showError('otp-error', '');
 }
 
 (async function resumeSession() {
@@ -267,6 +315,14 @@ function goBackToPassword() {
         if (error) return;
         if (!profile || !profile.is_2fa_enabled) { window.location.href = './profile.html'; return; }
         currentUser = session.user;
+        // Already past the gate in this tab? Reloading here used to fire a brand
+        // new code every time and stranded the user on the OTP step.
+        if (otpPendingFor(session.user.id)) {
+            document.getElementById('step-password').classList.add('hidden');
+            document.getElementById('step-otp').classList.remove('hidden');
+            document.getElementById('otp-email').textContent = session.user.email || '';
+            return;
+        }
         await requestOtp(session.user.email);
     } catch (error) {
         showError('login-error', error.message || 'Could not resume your session.');

@@ -801,7 +801,7 @@
             // getSession() only reads the local session; refreshSession() on every
             // page load forced a network round-trip and bounced the user to login
             // whenever it hiccupped. App.requireSession refreshes only when expired.
-            const auth = await App.requireSession();
+            const auth = await App.requireVerifiedSession();
             if (!auth) return;
             currentUser = auth.user;
             document.getElementById('user-initials').textContent = (currentUser.email[0] || 'U').toUpperCase();

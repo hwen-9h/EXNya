@@ -107,6 +107,22 @@
     }
 
     /**
+     * Full entry check for a dashboard page: needs a session AND, when the
+     * account has 2FA enabled, proof that the code was entered in this tab.
+     * Returns { user, session } or null (after redirecting to ./pl.html).
+     */
+    async function requireVerifiedSession(opts) {
+        const auth = await requireSession(opts);
+        if (!auth) return null;
+        const flags = await getAccountFlags(auth.user.id);
+        if (flags && flags.is_2fa_enabled && !isOtpVerified(auth.user.id)) {
+            global.location.href = './pl.html';
+            return null;
+        }
+        return auth;
+    }
+
+    /**
      * After login: every page with a 2FA setup lives behind this check, so it
      * has to agree with them. `/profile` is the only page that does not require
      * 2FA to be re-verified, which is why the login page used to send
@@ -203,12 +219,54 @@
         return data && data.signedUrl ? data.signedUrl : null;
     }
 
+    // ─── 2FA gate ───────────────────────────────────────────────────────
+
+    const OTP_KEY = 'exnya_otp_verified';
+
+    /**
+     * Has this tab passed the 2FA code step? pl.html sets this after
+     * verify-otp succeeds. Pages that call requireSession() also call this and
+     * send the user back to login when the account has 2FA switched on but the
+     * code was never entered — otherwise opening a URL directly bypassed it.
+     */
+    function isOtpVerified(userId) {
+        try {
+            const value = global.sessionStorage.getItem(OTP_KEY);
+            if (!value) return false;
+            // Older builds stored the literal string 'verified'.
+            return value === 'verified' || (!!userId && value === userId);
+        } catch (e) {
+            // Storage unavailable: do not lock the user out, but flag it.
+            console.warn('[app-base] sessionStorage unavailable; 2FA gate cannot be checked');
+            return true;
+        }
+    }
+
+    /** Fetch the profile fields the gate needs. Returns null when unknown. */
+    async function getAccountFlags(userId) {
+        const client = global.supabaseClient;
+        if (!client) return null;
+        const { data, error } = await client
+            .from('profiles')
+            .select('is_2fa_enabled')
+            .eq('id', userId)
+            .maybeSingle();
+        if (error) {
+            console.error('[app-base] could not read account flags:', error.message);
+            return null;
+        }
+        return data;
+    }
+
     global.App = {
         esc: esc,
         money: money,
         num: num,
         copyText: copyText,
         requireSession: requireSession,
+        requireVerifiedSession: requireVerifiedSession,
+        isOtpVerified: isOtpVerified,
+        getAccountFlags: getAccountFlags,
         getPostLoginTarget: getPostLoginTarget,
         getPrices: getPrices,
         signedUrl: signedUrl

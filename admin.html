@@ -656,9 +656,10 @@
         }
 
         async function ensureValidSession() {
-            const { data: { session }, error: refreshError } = await supabaseClient.auth.refreshSession();
-            if (refreshError || !session) {
-                console.error('Session refresh failed:', refreshError);
+            // refreshSession() on every entry bounced admins to login when the
+            // token still had hours left; getSession() refreshes only if needed.
+            const { data: { session } } = await supabaseClient.auth.getSession();
+            if (!session) {
                 window.location.href = './pl.html';
                 return false;
             }
@@ -816,17 +817,31 @@
                 }
                 let html = '<table><thead><tr><th>Email</th><th>Document</th><th>Actions</th></tr></thead><tbody>';
                 for (const user of pendingUsers) {
-                    html += `<tr>
-                        <td>${user.email}</td>
-                        <td>${user.kyc_document_url ? `<button class="btn btn-outline" onclick="viewDocument('${user.kyc_document_url}')">View ID</button>` : 'No file'}</td>
-                        <td>
-                            <button class="btn btn-primary" onclick="approveKYC('${user.id}')">Approve</button>
-                            <button class="btn btn-danger" onclick="rejectKYC('${user.id}')">Reject</button>
-                        </td>
-                    </tr>`;
+                    html += '<tr>' +
+                        '<td>' + App.esc(user.email || '') + '</td>' +
+                        '<td>' + (user.kyc_document_url
+                            ? '<button class="btn btn-outline" data-action="view" data-id="' + App.esc(user.id) + '">View ID</button>'
+                            : 'No file') + '</td>' +
+                        '<td>' +
+                        '<button class="btn btn-primary" data-action="approve" data-id="' + App.esc(user.id) + '">Approve</button>' +
+                        '<button class="btn btn-danger" data-action="reject" data-id="' + App.esc(user.id) + '">Reject</button>' +
+                        '</td>' +
+                        '</tr>';
                 }
-                html += `</tbody></table>`;
+                html += '</tbody></table>';
                 container.innerHTML = html;
+                // Bind handlers instead of inline onclick strings (a quote in a
+                // document path used to break the markup entirely).
+                container.querySelectorAll('button[data-action]').forEach(btn => {
+                    btn.addEventListener('click', () => {
+                        const id = btn.dataset.id;
+                        const action = btn.dataset.action;
+                        const user = pendingUsers.find(u => u.id === id);
+                        if (action === 'view') viewDocument(user && user.kyc_document_url);
+                        else if (action === 'approve') approveKYC(id);
+                        else rejectKYC(id);
+                    });
+                });
             } catch (err) {
                 console.error('loadKYCQueue error:', err);
                 document.getElementById('kyc-queue').innerHTML = '<p style="color:var(--trade-red)">Error loading queue.</p>';
@@ -835,14 +850,17 @@
 
         async function viewDocument(filePath) {
             if (!filePath) { alert('No document available.'); return; }
+            // Open the tab synchronously: after an await the popup blocker treats
+            // window.open as unsolicited and silently drops it.
+            const tab = window.open('', '_blank');
             try {
-                const { data, error } = await supabaseClient.storage
-                    .from('kyc_documents')
-                    .createSignedUrl(filePath, 300);
-                if (error) throw error;
-                window.open(data.signedUrl, '_blank');
+                const url = await App.signedUrl('kyc_documents', filePath, 300);
+                if (!url) throw new Error('could not sign the document URL');
+                if (tab) tab.location.href = url;
+                else window.location.href = url;
             } catch (err) {
-                alert('Could not generate link: ' + err.message);
+                if (tab) tab.close();
+                alert('Could not open the document: ' + err.message);
             }
         }
 
@@ -961,6 +979,7 @@
 
         checkAdmin();
     </script>
+    <script src="app-base.js"></script>
     <script src="settings.js"></script>
 </body>
 

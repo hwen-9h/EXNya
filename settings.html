@@ -723,9 +723,9 @@
         }
 
         async function loadUserInfo() {
-            const { data: { session } } = await supabaseClient.auth.getSession();
-            if (!session) { window.location.href = './pl.html'; return; }
-            const user = session.user;
+            const auth = await App.requireVerifiedSession();
+            if (!auth) return;
+            const user = auth.user;
             document.getElementById('user-initials').textContent = (user.email[0] || 'U').toUpperCase();
             document.getElementById('user-fullname').textContent = user.email.split('@')[0];
             document.getElementById('user-email-display').textContent = user.email;
@@ -741,6 +741,7 @@
                 .single();
 
             if (profile) {
+                if (profile.font_size) document.documentElement.style.fontSize = profile.font_size + 'px';
                 document.getElementById('theme').value = profile.theme || 'dark';
                 document.getElementById('fontSize').value = profile.font_size || 14;
                 document.getElementById('currency').value = profile.currency || 'USD';
@@ -810,6 +811,7 @@
             loadForm();
         });
     </script>
+    <script src="app-base.js"></script>
 </body>
 
 </html>
