@@ -9,6 +9,8 @@
         href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600&family=Sora:wght@400;600;700&family=JetBrains+Mono:wght@400;500&display=swap"
         rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="app-base.js"></script>
+    <script src="settings.js"></script>
     <style>
         :root {
             --bg-base: #080b0f;
@@ -680,74 +682,8 @@
             supabaseClient.auth.signOut().then(() => window.location.href = './pl.html');
         }
 
-        loadPortfolioData();
+        document.addEventListener('DOMContentLoaded', () => { loadPortfolioData(); });
     </script>
-    <script src="app-base.js"></script>
-    <script src="settings.js"></script>
-</body>
-
-</html> + market.usd.toFixed(2) : '—';
-                    const changeCell = market
-                        ? '<span class="mono ' + (market.change24h >= 0 ? 'change-positive' : 'change-negative') + '">' +
-                          (market.change24h >= 0 ? '+' : '') + market.change24h.toFixed(2) + '%</span>'
-                        : '<span class="mono">—</span>';
-                    const valueCell = market ? '
-                document.getElementById('update-time').textContent = `Last updated: ${new Date().toLocaleTimeString()}`;
-            } catch (err) {
-                console.error(err);
-                tbody.innerHTML = '<tr><td colspan="5" class="loading-text" style="color:var(--trade-red)">Failed to load portfolio.</td></tr>';
-            }
-        }
-
-        function getCoinColor(symbol) {
-            const colors = {
-                BTC: '#F7931A', ETH: '#627EEA', SOL: '#14F195', USDT: '#26A17B', ADA: '#0033AD',
-                USDC: '#2775CA', XRP: '#0085FF', DOGE: '#C2A633', DOT: '#E6007A'
-            };
-            return colors[symbol] || '#444';
-        }
-
-        function logout() {
-            supabaseClient.auth.signOut().then(() => window.location.href = './pl.html');
-        }
-
-        loadPortfolioData();
-    </script>
-    <script src="settings.js"></script>
-</body>
-
-</html> + (qty * market.usd).toFixed(2) : '—';
-                    if (market) totalValue += qty * market.usd; else unpriced++;
-                    const coinColor = getCoinColor(symbol);
-                    html +=
-                        `<tr><td><div class="asset-cell"><div class="coin-icon" style="background:${coinColor};color:white;">${App.esc(symbol[0] || '?')}</div><span class="coin-symbol">${App.esc(symbol)}</span></div></td><td class="mono">${qty.toFixed(4)}</td><td class="mono">${priceCell}</td><td class="mono">${changeCell}</td><td class="mono">${valueCell}</td></tr>`;
-                });
-                tbody.innerHTML = html;
-                document.getElementById('total-value').textContent = unpriced
-                    ? `${totalValue.toFixed(2)} (+ ${unpriced} unpriced)`
-                    : `${totalValue.toFixed(2)}`;
-                document.getElementById('update-time').textContent = `Last updated: ${new Date().toLocaleTimeString()}`;
-            } catch (err) {
-                console.error(err);
-                tbody.innerHTML = '<tr><td colspan="5" class="loading-text" style="color:var(--trade-red)">Failed to load portfolio.</td></tr>';
-            }
-        }
-
-        function getCoinColor(symbol) {
-            const colors = {
-                BTC: '#F7931A', ETH: '#627EEA', SOL: '#14F195', USDT: '#26A17B', ADA: '#0033AD',
-                USDC: '#2775CA', XRP: '#0085FF', DOGE: '#C2A633', DOT: '#E6007A'
-            };
-            return colors[symbol] || '#444';
-        }
-
-        function logout() {
-            supabaseClient.auth.signOut().then(() => window.location.href = './pl.html');
-        }
-
-        loadPortfolioData();
-    </script>
-    <script src="settings.js"></script>
 </body>
 
 </html>

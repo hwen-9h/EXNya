@@ -9,6 +9,8 @@
         href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600;700&family=Sora:wght@400;600;700&family=JetBrains+Mono:wght@400;500&display=swap"
         rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="app-base.js"></script>
+    <script src="settings.js"></script>
     <style>
         /* ─── All styles (same as before) ────────────────────────────── */
         * {
@@ -1699,11 +1701,9 @@
             if (autoRefreshInterval) { clearInterval(autoRefreshInterval); autoRefreshInterval = null; }
         });
 
-        init();
+        document.addEventListener('DOMContentLoaded', () => { init(); });
     </script>
 
-    <script src="app-base.js"></script>
-    <script src="settings.js"></script>
 </body>
 
 </html>

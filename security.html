@@ -9,6 +9,8 @@
         href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600&family=Sora:wght@400;600;700&family=JetBrains+Mono:wght@400;500&display=swap"
         rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="app-base.js"></script>
+    <script src="settings.js"></script>
     <style>
         :root {
             --bg-base: #080b0f;
@@ -699,7 +701,10 @@
         }
 
         async function init() {
-            const auth = await App.requireSession();
+            // Must be the verified gate, not requireSession: with 2FA on, an
+            // attacker with just the password could otherwise open this page
+            // directly and switch 2FA off without ever entering a code.
+            const auth = await App.requireVerifiedSession();
             if (!auth) return;
             currentUser = auth.user;
             document.getElementById('user-initials').textContent = (currentUser.email[0] || 'U').toUpperCase();
@@ -762,10 +767,8 @@
             supabaseClient.auth.signOut().then(() => window.location.href = './pl.html');
         }
 
-        init();
+        document.addEventListener('DOMContentLoaded', () => { init(); });
     </script>
-    <script src="app-base.js"></script>
-    <script src="settings.js"></script>
 </body>
 
 </html>

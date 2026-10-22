@@ -9,6 +9,8 @@
         href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600&family=Sora:wght@400;600;700&family=JetBrains+Mono:wght@400;500&display=swap"
         rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="app-base.js"></script>
+    <script src="settings.js"></script>
     <style>
         :root {
             --bg-base: #080b0f;
@@ -656,16 +658,11 @@
         }
 
         async function ensureValidSession() {
-            // refreshSession() on every entry bounced admins to login when the
-            // token still had hours left; getSession() refreshes only if needed.
-            const { data: { session } } = await supabaseClient.auth.getSession();
-            if (!session) {
-                window.location.href = './pl.html';
-                return false;
-            }
-            if (session.user && (!currentUser || currentUser.id !== session.user.id)) {
-                currentUser = session.user;
-            }
+            // Verified gate: a password-only session must not open the admin
+            // console when the account has 2FA switched on.
+            const auth = await App.requireVerifiedSession();
+            if (!auth || !auth.user) return false;
+            currentUser = auth.user;
             return true;
         }
 
@@ -977,10 +974,8 @@
             supabaseClient.auth.signOut().then(() => window.location.href = './pl.html');
         }
 
-        checkAdmin();
+        document.addEventListener('DOMContentLoaded', () => { checkAdmin(); });
     </script>
-    <script src="app-base.js"></script>
-    <script src="settings.js"></script>
 </body>
 
 </html>

@@ -217,16 +217,33 @@ function otpPendingFor(userId) {
 function showError(id, message) { document.getElementById(id).textContent = message || ''; }
 function setBusy(button, busy, label) { button.disabled = busy; button.textContent = label; }
 
-async function requestOtp(email) {
+async function requestOtp(email, opts) {
+    const options = opts || {};
     document.getElementById('step-password').classList.add('hidden');
     document.getElementById('step-otp').classList.remove('hidden');
     document.getElementById('otp-email').textContent = email || '';
-    document.getElementById('otp-input').focus();
+    const input = document.getElementById('otp-input');
+    if (input && !options.keepCode) input.value = '';
+    if (input) input.focus();
+    // Cooldown: never send more than one code per 60s per tab. Reloads and
+    // double-clicks used to fire a new email every time, burying the real
+    // code under newer ones and tripping rate limits (the 502s).
+    try {
+        const last = Number(sessionStorage.getItem('exnya_otp_sent_at') || 0);
+        if (!options.force && last && Date.now() - last < 60000) {
+            showError('otp-error', '');
+            return true;
+        }
+    } catch (e) { /* ignore */ }
     const { error } = await supabaseClient.functions.invoke('send-otp', { body: {} });
     if (error) {
-        showError('otp-error', error.message || 'Could not send a verification code.');
+        // Keep the user on the OTP step with the error visible AND signed in,
+        // so Resend actually works. The old code signed out and flipped back
+        // to the password step, discarding the error and the session.
+        showError('otp-error', (error.message || 'Could not send a verification code.') + ' You are still signed in — press Resend code to try again.');
         return false;
     }
+    try { sessionStorage.setItem('exnya_otp_sent_at', String(Date.now())); } catch (e) { /* ignore */ }
     showError('otp-error', '');
     return true;
 }
@@ -249,11 +266,12 @@ async function handleLogin() {
         if (profileError) { showError('login-error', 'Could not load account security settings.'); await supabaseClient.auth.signOut(); return; }
         if (!profile || !profile.is_2fa_enabled) { window.location.href = './profile.html'; return; }
         markOtpPendingFor(currentUser.id);
-        const sent = await requestOtp(email);
+        const sent = await requestOtp(email, { force: true });
         if (!sent) {
-            await supabaseClient.auth.signOut();
-            document.getElementById('step-otp').classList.add('hidden');
-            document.getElementById('step-password').classList.remove('hidden');
+            // Stay signed in on the OTP step so the user can press Resend.
+            // Signing out here used to strand people on the password step
+            // with no session and no visible error.
+            return;
         }
     } catch (error) {
         showError('login-error', error.message || 'Sign-in failed. Please try again.');
@@ -299,9 +317,19 @@ function goToSignup() { window.location.href = './signup.html'; }
 async function resendOtp() {
     if (!currentUser) { goBackToPassword(); return; }
     const button = document.getElementById('resend-btn');
+    // Respect the 60s send cooldown, but tell the user instead of silently
+    // doing nothing (which used to look like a broken button).
+    try {
+        const last = Number(sessionStorage.getItem('exnya_otp_sent_at') || 0);
+        const wait = 60 - Math.floor((Date.now() - last) / 1000);
+        if (last && wait > 0) {
+            showError('otp-error', 'A code was just sent — check your email (and spam). You can resend in ' + wait + 's.');
+            return;
+        }
+    } catch (e) { /* ignore */ }
     setBusy(button, true, 'Sending…');
     markOtpPendingFor(currentUser.id);
-    const ok = await requestOtp(currentUser.email);
+    const ok = await requestOtp(currentUser.email, { force: true });
     setBusy(button, false, 'Resend code');
     if (ok) showError('otp-error', '');
 }
