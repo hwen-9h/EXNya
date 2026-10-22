@@ -569,7 +569,7 @@
 
         <main class="main-content">
             <div class="top-bar">
-                <img class="top-logo" src="https://placehold.co/120x40?text=EXNYA" alt="EXNYA">
+                <img class="top-logo" src="WhatsApp Image 2026-04-03 at 4.24.59 AM.jpeg" alt="EXNYA">
                 <div class="user-info-row">
                     <div class="avatar" id="user-initials">U</div>
                     <div class="user-text">
@@ -704,9 +704,9 @@
         animate();
 
         async function initSwap() {
-            const { data: { session } } = await supabaseClient.auth.getSession();
-            if (!session) { window.location.href = './pl.html'; return; }
-            currentUser = session.user;
+            const auth = await App.requireSession();
+            if (!auth) return;
+            currentUser = auth.user;
             document.getElementById('user-initials').textContent = (currentUser.email[0] || 'U').toUpperCase();
             document.getElementById('user-fullname').textContent = currentUser.email;
             document.getElementById('user-email-display').textContent = currentUser.email;
@@ -728,8 +728,10 @@
         }
 
         async function loadUserAssets() {
-            const { data: assets } = await supabaseClient.from('user_assets').select('id, asset_symbol, quantity').eq(
-                'user_id', currentUser.id);
+            const { data: assets, error } = await supabaseClient.from('user_assets')
+                .select('id, asset_symbol, quantity')
+                .eq('user_id', currentUser.id);
+            if (error) console.error('loadUserAssets failed:', error);
             userAssetsMap = {};
             if (assets) assets.forEach(a => {
                 userAssetsMap[a.asset_symbol] = {
@@ -739,16 +741,21 @@
             });
         }
 
+        const FALLBACK_COINS = ['USDC', 'USDT', 'ETH', 'SOL', 'SUI', 'APT', 'DAI', 'WBTC'];
+
         async function loadPricesAndCoins() {
-            try {
-                const res = await fetch('https://api.coinlore.net/api/tickers/?limit=100');
-                const json = await res.json();
-                json.data.forEach(coin => { livePrices[coin.symbol] = parseFloat(coin.price_usd); });
-                availableCoins = json.data.slice(0, 10).map(coin => ({
-                    symbol: coin.symbol, price: parseFloat(coin
-                        .price_usd)
-                }));
-            } catch (e) { availableCoins = []; }
+            // Shared cached fetch (one request per 30s, instead of one per page
+            // load that the old api.coinlore.net CORS setting could break).
+            const prices = await App.getPrices();
+            if (prices) {
+                livePrices = {};
+                Object.keys(prices).forEach(sym => { livePrices[sym] = prices[sym].usd; });
+                availableCoins = Object.keys(prices).slice(0, 30).map(sym => ({ symbol: sym, price: prices[sym].usd }));
+            } else {
+                // Keep the picker usable: fall back to the assets we already show
+                // elsewhere and let updateQuote() flag missing rates.
+                availableCoins = FALLBACK_COINS.map(sym => ({ symbol: sym, price: livePrices[sym] || 0 }));
+            }
         }
 
         function getCoinLogoHTML(symbol) {
@@ -756,7 +763,8 @@
                 BTC: '#F7931A', ETH: '#627EEA', USDT: '#26A17B', USDC: '#2775CA', SOL: '#14F195', ADA: '#0033AD',
                 XRP: '#0085FF', DOGE: '#C2A633', DOT: '#E6007A'
             };
-            return `<div style="width:22px;height:22px;border-radius:50%;background:${colors[symbol] || '#444'};display:flex;align-items:center;justify-content:center;color:white;font-size:10px;font-weight:600;">${symbol[0]}</div>`;
+            const sym = App.esc(symbol || '?');
+            return `<div style="width:22px;height:22px;border-radius:50%;background:${colors[symbol] || '#444'};display:flex;align-items:center;justify-content:center;color:white;font-size:10px;font-weight:600;">${sym[0] || '?'}</div>`;
         }
 
         function updateQuote() {
@@ -776,6 +784,11 @@
                 return;
             }
             const rate = livePrices[selectedFrom] / livePrices[selectedTo];
+            if (!isFinite(rate) || rate <= 0) {
+                document.getElementById('swap-button').disabled = true;
+                document.getElementById('swap-button').textContent = 'Rate unavailable';
+                return;
+            }
             const fee = fromAmount * 0.005;
             const receive = (fromAmount - fee) * rate;
             document.getElementById('to-amount').value = receive.toFixed(6);
@@ -786,8 +799,12 @@
             document.getElementById('swap-button').textContent = 'Swap';
         }
 
+        // Flip the pair. The guard on userAssetsMap[selectedFrom] used to make
+        // this a silent no-op whenever the "to" asset was not held (the common
+        // case), so the flip button looked broken.
         function swapAssets() {
-            if (!selectedFrom || !selectedTo || !userAssetsMap[selectedFrom]) return;
+            if (!selectedFrom || !selectedTo) return;
+            if (selectedFrom === selectedTo) return;
             [selectedFrom, selectedTo] = [selectedTo, selectedFrom];
             document.getElementById('from-symbol').textContent = selectedFrom;
             document.getElementById('from-logo').innerHTML = getCoinLogoHTML(selectedFrom);
@@ -809,7 +826,7 @@
                     const btn = document.createElement('button');
                     btn.className = 'btn btn-outline';
                     btn.style.justifyContent = 'flex-start';
-                    btn.innerHTML = `${getCoinLogoHTML(sym)} ${sym}`;
+                    btn.innerHTML = `${getCoinLogoHTML(sym)} ${App.esc(sym)}`;
                     btn.onclick = () => selectAsset(side, sym);
                     list.appendChild(btn);
                 });
@@ -822,7 +839,7 @@
                         const btn = document.createElement('button');
                         btn.className = 'btn btn-outline';
                         btn.style.justifyContent = 'flex-start';
-                        btn.innerHTML = `${getCoinLogoHTML(coin.symbol)} ${coin.symbol}`;
+                        btn.innerHTML = `${getCoinLogoHTML(coin.symbol)} ${App.esc(coin.symbol)}`;
                         btn.onclick = () => selectAsset(side, coin.symbol);
                         list.appendChild(btn);
                     });
@@ -849,55 +866,82 @@
 
         function closePicker() { document.getElementById('picker-modal').style.display = 'none'; }
 
+        // Smallest unit we keep, so repeated swaps cannot leave dust like 1e-17.
+        const QTY_DECIMALS = 8;
+        function roundQty(n) {
+            const f = Math.pow(10, QTY_DECIMALS);
+            return Math.round(App.num(n) * f) / f;
+        }
+
         async function executeSwap() {
             if (swapInProgress) return;
             const fromAmount = parseFloat(document.getElementById('from-amount').value);
             if (!fromAmount || fromAmount <= 0 || !selectedFrom || !selectedTo) return;
+            if (selectedFrom === selectedTo) { alert('Choose two different assets.'); return; }
             const fromAsset = userAssetsMap[selectedFrom];
             if (!fromAsset || fromAsset.quantity < fromAmount) { alert('Insufficient balance.'); return; }
             const toAmount = parseFloat(document.getElementById('to-amount').value);
+            if (!isFinite(toAmount) || toAmount <= 0) { alert('No valid quote for this pair.'); return; }
+
+            // Capture the pair now: the confirm handler used to read the live
+            // selectedFrom/selectedTo globals, so changing the selection while
+            // the modal was open swapped a different pair than the one quoted.
+            const fromSymbol = selectedFrom;
+            const toSymbol = selectedTo;
             document.getElementById('confirm-text').textContent =
-                `Swap ${fromAmount} ${selectedFrom} → ${toAmount.toFixed(6)} ${selectedTo}?`;
+                `Swap ${fromAmount} ${fromSymbol} → ${toAmount.toFixed(6)} ${toSymbol}?`;
+
             document.getElementById('confirm-yes').onclick = async () => {
                 closeConfirm();
                 if (swapInProgress) return;
                 swapInProgress = true;
-                document.getElementById('swap-button').disabled = true;
-                document.getElementById('swap-button').innerHTML = '<div class="spinner"></div> Swapping…';
+                const btn = document.getElementById('swap-button');
+                btn.disabled = true;
+                btn.innerHTML = '<div class="spinner"></div> Swapping…';
                 try {
-                    const newFromQty = fromAsset.quantity - fromAmount;
+                    const newFromQty = roundQty(fromAsset.quantity - fromAmount);
                     if (newFromQty <= 0) {
-                        await supabaseClient.from('user_assets').delete().eq('id', fromAsset.id);
-                        delete userAssetsMap[selectedFrom];
+                        const { error } = await supabaseClient.from('user_assets').delete().eq('id', fromAsset.id);
+                        if (error) throw error;
+                        delete userAssetsMap[fromSymbol];
                     } else {
-                        await supabaseClient.from('user_assets').update({ quantity: newFromQty }).eq('id', fromAsset
-                            .id);
-                        userAssetsMap[selectedFrom].quantity = newFromQty;
+                        const { error } = await supabaseClient.from('user_assets')
+                            .update({ quantity: newFromQty }).eq('id', fromAsset.id);
+                        if (error) throw error;
+                        userAssetsMap[fromSymbol].quantity = newFromQty;
                     }
-                    const toAsset = userAssetsMap[selectedTo];
+
+                    const toQty = roundQty(toAmount);
+                    const toAsset = userAssetsMap[toSymbol];
                     if (toAsset) {
-                        const newToQty = toAsset.quantity + toAmount;
-                        await supabaseClient.from('user_assets').update({ quantity: newToQty }).eq('id', toAsset.id);
-                        userAssetsMap[selectedTo].quantity = newToQty;
+                        const newToQty = roundQty(toAsset.quantity + toQty);
+                        const { error } = await supabaseClient.from('user_assets')
+                            .update({ quantity: newToQty }).eq('id', toAsset.id);
+                        if (error) throw error;
+                        userAssetsMap[toSymbol].quantity = newToQty;
                     } else {
-                        const { data: inserted } = await supabaseClient.from('user_assets').insert({
-                            user_id: currentUser
-                                .id, asset_symbol: selectedTo, quantity: toAmount
+                        const { data: inserted, error } = await supabaseClient.from('user_assets').insert({
+                            user_id: currentUser.id, asset_symbol: toSymbol, quantity: toQty
                         }).select('id').single();
-                        userAssetsMap[selectedTo] = { id: inserted.id, quantity: toAmount };
+                        if (error) throw error;
+                        if (!inserted) throw new Error('Could not credit ' + toSymbol);
+                        userAssetsMap[toSymbol] = { id: inserted.id, quantity: toQty };
                     }
+
                     document.getElementById('from-amount').value = '';
                     document.getElementById('to-amount').value = '';
                     updateQuote();
                     alert('Swap successful!');
                 } catch (err) {
+                    // Partial writes: the client-side writes are not atomic, so a
+                    // failure half way leaves the local map out of sync — reload it.
                     alert('Swap failed: ' + err.message);
-                    await loadUserAssets();
-                    updateQuote();
                 } finally {
                     swapInProgress = false;
-                    document.getElementById('swap-button').disabled = false;
-                    document.getElementById('swap-button').textContent = 'Swap';
+                    await loadUserAssets();
+                    updateQuote();
+                    btn.disabled = false;
+                    btn.textContent = 'Swap';
                 }
             };
             document.getElementById('confirm-modal').style.display = 'flex';
@@ -905,12 +949,23 @@
 
         function closeConfirm() { document.getElementById('confirm-modal').style.display = 'none'; }
 
+        // Both modals could only be dismissed from their own buttons; a click on
+        // the dark backdrop did nothing.
+        [['confirm-modal', closeConfirm], ['picker-modal', closePicker]].forEach(([id, close]) => {
+            const el = document.getElementById(id);
+            if (el) el.addEventListener('click', (e) => { if (e.target === el) close(); });
+        });
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape') { closeConfirm(); closePicker(); }
+        });
+
         function logout() {
             supabaseClient.auth.signOut().then(() => window.location.href = './pl.html');
         }
 
         initSwap();
     </script>
+    <script src="app-base.js"></script>
     <script src="settings.js"></script>
 </body>
 

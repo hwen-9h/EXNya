@@ -604,9 +604,9 @@
         animate();
 
         async function loadPortfolioData() {
-            const { data: { session } } = await supabaseClient.auth.getSession();
-            if (!session) { window.location.href = './pl.html'; return; }
-            currentUser = session.user;
+            const auth = await App.requireSession();
+            if (!auth) return;
+            currentUser = auth.user;
             document.getElementById('user-initials').textContent = (currentUser.email[0] || 'U').toUpperCase();
             document.getElementById('user-fullname').textContent = currentUser.email;
             document.getElementById('user-email-display').textContent = currentUser.email;
@@ -615,20 +615,10 @@
             priceUpdateInterval = setInterval(updatePortfolio, 20000);
         }
 
+        // Shared, cached fetch. Returning null (instead of a map of NaN) is what
+        // the table below already knows how to report.
         async function fetchLivePrices() {
-            try {
-                const res = await fetch('https://api.coinlore.net/api/tickers/?limit=100');
-                if (!res.ok) throw new Error();
-                const json = await res.json();
-                const priceMap = {};
-                json.data.forEach(asset => {
-                    priceMap[asset.symbol] = {
-                        usd: parseFloat(asset.price_usd),
-                        change24h: parseFloat(asset.percent_change_24h)
-                    };
-                });
-                return priceMap;
-            } catch (err) { console.error(err); return null; }
+            return await App.getPrices();
         }
 
         async function updatePortfolio() {
@@ -645,25 +635,97 @@
                 const priceMap = await fetchLivePrices();
                 if (!priceMap) {
                     tbody.innerHTML =
-                        '<tr><td colspan="5" class="loading-text" style="color:var(--trade-red)">Failed to load prices. Retrying soon...</td></tr>';
+                        '<tr><td colspan="5" class="loading-text" style="color:var(--trade-red)">Live prices are unavailable right now – retrying in 20s.</td></tr>';
                     return;
                 }
                 let totalValue = 0,
                     html = '';
+                let unpriced = 0;
                 assets.forEach(asset => {
                     const symbol = asset.asset_symbol,
-                        qty = Number(asset.quantity);
-                    const market = priceMap[symbol] || { usd: 0, change24h: 0 };
-                    const value = qty * market.usd;
-                    totalValue += value;
-                    const changeClass = market.change24h >= 0 ? 'change-positive' : 'change-negative';
-                    const changeSign = market.change24h >= 0 ? '+' : '';
+                        qty = App.num(asset.quantity);
+                    // A missing price used to render "$NaN" and poison the total.
+                    const market = priceMap[symbol];
+                    const priceCell = market ? '$' + market.usd.toFixed(2) : '—';
+                    const changeCell = market
+                        ? '<span class="mono ' + (market.change24h >= 0 ? 'change-positive' : 'change-negative') + '">' +
+                          (market.change24h >= 0 ? '+' : '') + market.change24h.toFixed(2) + '%</span>'
+                        : '<span class="mono">—</span>';
+                    const valueCell = market ? '$' + (qty * market.usd).toFixed(2) : '—';
+                    if (market) totalValue += qty * market.usd; else unpriced++;
                     const coinColor = getCoinColor(symbol);
                     html +=
-                        `<tr><td><div class="asset-cell"><div class="coin-icon" style="background:${coinColor};color:white;">${symbol[0]}</div><span class="coin-symbol">${symbol}</span></div></td><td class="mono">${qty.toFixed(4)}</td><td class="mono">$${market.usd.toFixed(2)}</td><td class="mono ${changeClass}">${changeSign}${market.change24h.toFixed(2)}%</td><td class="mono">$${value.toFixed(2)}</td></tr>`;
+                        `<tr><td><div class="asset-cell"><div class="coin-icon" style="background:${coinColor};color:white;">${App.esc(symbol[0] || '?')}</div><span class="coin-symbol">${App.esc(symbol)}</span></div></td><td class="mono">${qty.toFixed(4)}</td><td class="mono">${priceCell}</td><td class="mono">${changeCell}</td><td class="mono">${valueCell}</td></tr>`;
                 });
                 tbody.innerHTML = html;
-                document.getElementById('total-value').textContent = `$${totalValue.toFixed(2)}`;
+                document.getElementById('total-value').textContent = unpriced
+                    ? `$${totalValue.toFixed(2)} (+ ${unpriced} unpriced)`
+                    : `$${totalValue.toFixed(2)}`;
+                document.getElementById('update-time').textContent = `Last updated: ${new Date().toLocaleTimeString()}`;
+            } catch (err) {
+                console.error(err);
+                tbody.innerHTML = '<tr><td colspan="5" class="loading-text" style="color:var(--trade-red)">Failed to load portfolio.</td></tr>';
+            }
+        }
+
+        function getCoinColor(symbol) {
+            const colors = {
+                BTC: '#F7931A', ETH: '#627EEA', SOL: '#14F195', USDT: '#26A17B', ADA: '#0033AD',
+                USDC: '#2775CA', XRP: '#0085FF', DOGE: '#C2A633', DOT: '#E6007A'
+            };
+            return colors[symbol] || '#444';
+        }
+
+        function logout() {
+            supabaseClient.auth.signOut().then(() => window.location.href = './pl.html');
+        }
+
+        loadPortfolioData();
+    </script>
+    <script src="app-base.js"></script>
+    <script src="settings.js"></script>
+</body>
+
+</html> + market.usd.toFixed(2) : '—';
+                    const changeCell = market
+                        ? '<span class="mono ' + (market.change24h >= 0 ? 'change-positive' : 'change-negative') + '">' +
+                          (market.change24h >= 0 ? '+' : '') + market.change24h.toFixed(2) + '%</span>'
+                        : '<span class="mono">—</span>';
+                    const valueCell = market ? '
+                document.getElementById('update-time').textContent = `Last updated: ${new Date().toLocaleTimeString()}`;
+            } catch (err) {
+                console.error(err);
+                tbody.innerHTML = '<tr><td colspan="5" class="loading-text" style="color:var(--trade-red)">Failed to load portfolio.</td></tr>';
+            }
+        }
+
+        function getCoinColor(symbol) {
+            const colors = {
+                BTC: '#F7931A', ETH: '#627EEA', SOL: '#14F195', USDT: '#26A17B', ADA: '#0033AD',
+                USDC: '#2775CA', XRP: '#0085FF', DOGE: '#C2A633', DOT: '#E6007A'
+            };
+            return colors[symbol] || '#444';
+        }
+
+        function logout() {
+            supabaseClient.auth.signOut().then(() => window.location.href = './pl.html');
+        }
+
+        loadPortfolioData();
+    </script>
+    <script src="settings.js"></script>
+</body>
+
+</html> + (qty * market.usd).toFixed(2) : '—';
+                    if (market) totalValue += qty * market.usd; else unpriced++;
+                    const coinColor = getCoinColor(symbol);
+                    html +=
+                        `<tr><td><div class="asset-cell"><div class="coin-icon" style="background:${coinColor};color:white;">${App.esc(symbol[0] || '?')}</div><span class="coin-symbol">${App.esc(symbol)}</span></div></td><td class="mono">${qty.toFixed(4)}</td><td class="mono">${priceCell}</td><td class="mono">${changeCell}</td><td class="mono">${valueCell}</td></tr>`;
+                });
+                tbody.innerHTML = html;
+                document.getElementById('total-value').textContent = unpriced
+                    ? `${totalValue.toFixed(2)} (+ ${unpriced} unpriced)`
+                    : `${totalValue.toFixed(2)}`;
                 document.getElementById('update-time').textContent = `Last updated: ${new Date().toLocaleTimeString()}`;
             } catch (err) {
                 console.error(err);

@@ -10,6 +10,7 @@
         rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <style>
+        /* ─── All styles (same as before) ────────────────────────────── */
         :root {
             --bg-base: #080b0f;
             --bg-elevated: #0d1117;
@@ -369,6 +370,41 @@
             gap: 8px;
             align-items: center;
             margin-top: 12px;
+            flex-wrap: wrap;
+        }
+
+        .status-pending {
+            color: var(--brand-yellow);
+        }
+
+        .status-verified {
+            color: var(--trade-green);
+        }
+
+        .status-rejected {
+            color: var(--trade-red);
+        }
+
+        .status-unverified {
+            color: var(--text-muted);
+        }
+
+        .toast {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            background: var(--bg-elevated);
+            border-left: 4px solid var(--trade-green);
+            padding: 12px 20px;
+            border-radius: 8px;
+            z-index: 2000;
+            display: none;
+            max-width: 90%;
+            word-break: break-word;
+        }
+
+        .toast.error {
+            border-left-color: var(--trade-red);
         }
     </style>
 </head>
@@ -468,7 +504,7 @@
 
         <main class="main-content">
             <div class="top-bar">
-                <img class="top-logo" src="https://placehold.co/120x40?text=EXNYA" alt="EXNYA">
+                <img class="top-logo" src="WhatsApp Image 2026-04-03 at 4.24.59 AM.jpeg" alt="EXNYA">
                 <div class="user-info-row">
                     <div class="avatar" id="user-initials">U</div>
                     <div class="user-text">
@@ -499,11 +535,16 @@
                         <div class="label">KYC Status</div>
                         <div class="value" id="kyc-status-badge">--</div>
                     </div>
+                    <div class="detail-box">
+                        <div class="label">KYC Document</div>
+                        <div class="value" id="detail-kyc-doc">--</div>
+                    </div>
                 </div>
                 <div id="kyc-upload-section" style="display:none; margin-top:16px;">
                     <div class="kyc-upload">
                         <input type="file" id="kyc-file" accept="image/*">
-                        <button onclick="uploadKYC()" class="btn">Upload ID</button>
+                        <button onclick="uploadKYC()" class="btn" id="kyc-upload-btn">Upload ID</button>
+                        <span id="upload-status" style="font-size:12px; color:var(--text-muted);"></span>
                     </div>
                 </div>
                 <p id="kyc-message" style="font-size:12px; color:var(--text-muted); margin-top:8px;"></p>
@@ -533,14 +574,32 @@
         </main>
     </div>
 
+    <!-- Toast notification -->
+    <div id="toast" class="toast"></div>
+
     <script>
+        // ─── Configuration ──────────────────────────────────────────────
         const SUPABASE_URL = 'https://clwgengvcdokdzubdfxd.supabase.co';
         const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNsd2dlbmd2Y2Rva2R6dWJkZnhkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzc5MTIxNjEsImV4cCI6MjA5MzQ4ODE2MX0.0zgizWWXLIHiKdNUAJ3yKaIaxEKsHoFeEIo8IUAMtHU';
         const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
         window.supabaseClient = supabaseClient;
 
         let currentUser = null;
+        let currentProfile = null;
 
+        // ─── Toast helper ──────────────────────────────────────────────
+        let toastTimer = null;
+        function showToast(msg, isError = false) {
+            const toast = document.getElementById('toast');
+            toast.textContent = msg;
+            toast.className = 'toast' + (isError ? ' error' : '');
+            toast.style.display = 'block';
+            // Overlapping toasts used to fight each other's timers.
+            if (toastTimer) clearTimeout(toastTimer);
+            toastTimer = setTimeout(() => { toast.style.display = 'none'; }, 5000);
+        }
+
+        // ─── Sidebar toggle ────────────────────────────────────────────
         function toggleSidebar() {
             const sidebar = document.getElementById('sidebar');
             if (window.innerWidth <= 768) {
@@ -555,6 +614,7 @@
             document.getElementById('sidebar').classList.add('collapsed');
         }
 
+        // ─── Particle background ──────────────────────────────────────
         const canvas = document.getElementById('particle-canvas');
         const ctx = canvas.getContext('2d');
         let particles = [];
@@ -596,98 +656,205 @@
 
         function animate() {
             ctx.clearRect(0, 0, canvas.width, canvas.height);
-            particles.forEach(p => {
-                p.update();
-                p.draw();
-            });
+            particles.forEach(p => { p.update(); p.draw(); });
             requestAnimationFrame(animate);
         }
         animate();
 
+        // ─── Load profile ──────────────────────────────────────────────
         async function loadProfile() {
-            const { data: { session } } = await supabaseClient.auth.getSession();
-            if (!session) { window.location.href = './pl.html'; return; }
-            currentUser = session.user;
-            const { data: profile, error: profileError } = await supabaseClient.from('profiles').select('first_name,last_name,kyc_status,kyc_document_url,member_since').eq('id', currentUser.id).maybeSingle();
-            if (profileError || !profile) {
-                console.error('Profile load failed:', profileError);
-                alert('Your account profile could not be loaded. Please refresh or sign in again.');
-                return;
-            }
-            const firstName = profile?.first_name || '',
-                lastName = profile?.last_name || '',
-                fullName = `${firstName} ${lastName}`.trim() || currentUser.email;
-            document.getElementById('user-initials').textContent = (firstName || currentUser.email)[0].toUpperCase();
-            document.getElementById('user-fullname').textContent = fullName;
-            document.getElementById('user-email-display').textContent = currentUser.email;
-            document.getElementById('detail-email').textContent = currentUser.email;
-            document.getElementById('detail-name').textContent = fullName;
-
-            const kycStatus = profile?.kyc_status || 'unverified';
-            const badge = document.getElementById('kyc-status-badge');
-            badge.textContent = kycStatus.charAt(0).toUpperCase() + kycStatus.slice(1);
-            badge.style.color = {
-                unverified: 'var(--text-muted)', pending: 'var(--brand-yellow)', verified: 'var(--trade-green)',
-                rejected: 'var(--trade-red)'
-            }[kycStatus];
-
-            const uploadSection = document.getElementById('kyc-upload-section'),
-                msg = document.getElementById('kyc-message');
-            if (kycStatus === 'unverified' || kycStatus === 'rejected') {
-                uploadSection.style.display = 'block';
-                msg.textContent = kycStatus === 'rejected' ?
-                    'Your previous submission was rejected. Please upload a clear ID.' :
-                    'Upload a government‑issued ID to verify your account.';
-            } else {
-                uploadSection.style.display = 'none';
-                msg.textContent = kycStatus === 'pending' ? 'Your ID is being reviewed.' :
-                    'Your identity has been verified.';
-            }
-
-            const { data: assets, error: assetsError } = await supabaseClient.from('user_assets').select('asset_symbol,quantity').eq('user_id', currentUser.id);
-            if (assetsError) console.warn('Assets could not be loaded:', assetsError.message);
-            if (!assets || assets.length === 0) {
-                document.getElementById('assets-body').innerHTML =
-                    '<tr><td colspan="3" style="text-align:center;color:var(--text-muted);">No assets yet.</td></tr>';
-                return;
-            }
-            const prices = {};
             try {
-                const res = await fetch('https://api.coinlore.net/api/tickers/?limit=100');
-                const json = await res.json();
-                json.data.forEach(c => prices[c.symbol] = parseFloat(c.price_usd));
-            } catch (e) { }
-            let html = '';
-            assets.forEach(a => {
-                const qty = Number(a.quantity),
-                    value = qty * (prices[a.asset_symbol] || 0);
-                html +=
-                    `<tr><td><strong>${a.asset_symbol}</strong></td><td class="mono">${qty}</td><td class="mono">$${value.toFixed(2)}</td></tr>`;
-            });
-            document.getElementById('assets-body').innerHTML = html;
+                const auth = await App.requireSession();
+                if (!auth) return;
+                currentUser = auth.user;
+
+                // Narrow projection, as introduced in PR #1: do not ship every
+                // profile column to the browser.
+                const { data: profile, error } = await supabaseClient
+                    .from('profiles')
+                    .select('first_name,last_name,kyc_status,kyc_document_url,member_since')
+                    .eq('id', currentUser.id)
+                    .maybeSingle();
+
+                if (error) {
+                    console.error('Profile fetch error:', error);
+                    showToast('Failed to load profile: ' + error.message, true);
+                    return;
+                }
+                if (!profile) {
+                    showToast('No profile record found for this account.', true);
+                    return;
+                }
+
+                currentProfile = profile;
+                const firstName = profile?.first_name || '',
+                    lastName = profile?.last_name || '',
+                    fullName = `${firstName} ${lastName}`.trim() || currentUser.email;
+                document.getElementById('user-initials').textContent = (firstName || currentUser.email)[0].toUpperCase();
+                document.getElementById('user-fullname').textContent = fullName;
+                document.getElementById('user-email-display').textContent = currentUser.email;
+                document.getElementById('detail-email').textContent = currentUser.email;
+                document.getElementById('detail-name').textContent = fullName;
+
+                const kycStatus = profile.kyc_status || 'unverified';
+                const badge = document.getElementById('kyc-status-badge');
+                badge.textContent = kycStatus.charAt(0).toUpperCase() + kycStatus.slice(1);
+                badge.className = 'value status-' + kycStatus;
+
+                // The stored value is a private-bucket path, not a link.
+                const docEl = document.getElementById('detail-kyc-doc');
+                if (profile.kyc_document_url) {
+                    const url = await App.signedUrl('kyc_documents', profile.kyc_document_url, 900);
+                    if (url) {
+                        docEl.innerHTML = '<a href="' + App.esc(url) +
+                            '" target="_blank" rel="noopener" style="color:var(--brand-yellow)">View ID</a>';
+                    } else {
+                        docEl.textContent = 'Uploaded';
+                    }
+                } else {
+                    docEl.textContent = 'Not uploaded';
+                }
+
+                const uploadSection = document.getElementById('kyc-upload-section'),
+                    msg = document.getElementById('kyc-message');
+                if (kycStatus === 'unverified' || kycStatus === 'rejected') {
+                    uploadSection.style.display = 'block';
+                    msg.textContent = kycStatus === 'rejected' ?
+                        'Your previous submission was rejected. Please upload a clear ID.' :
+                        'Upload a government‑issued ID to verify your account.';
+                } else {
+                    uploadSection.style.display = 'none';
+                    msg.textContent = kycStatus === 'pending' ? 'Your ID is being reviewed.' :
+                        'Your identity has been verified.';
+                }
+
+                // Load assets
+                const assetsBody = document.getElementById('assets-body');
+                const { data: assets, error: assetsError } = await supabaseClient
+                    .from('user_assets')
+                    .select('*')
+                    .eq('user_id', currentUser.id);
+                if (assetsError) {
+                    console.error('Assets fetch error:', assetsError);
+                    assetsBody.innerHTML =
+                        '<tr><td colspan="3" style="text-align:center;color:var(--trade-red);">Could not load assets.</td></tr>';
+                    return;
+                }
+                if (!assets || assets.length === 0) {
+                    assetsBody.innerHTML =
+                        '<tr><td colspan="3" style="text-align:center;color:var(--text-muted);">No assets yet.</td></tr>';
+                    return;
+                }
+                // Prices are optional: the table still renders (quantity only)
+                // instead of every row showing $0.00.
+                const priceMap = await App.getPrices();
+                if (!priceMap) {
+                    showToast('Live prices unavailable – values may be out of date.', true);
+                }
+                let html = '';
+                assets.forEach(a => {
+                    const qty = App.num(a.quantity);
+                    const market = priceMap && priceMap[a.asset_symbol];
+                    const value = market ? qty * market.usd : null;
+                    html +=
+                        '<tr><td><strong>' + App.esc(a.asset_symbol) + '</strong></td>' +
+                        '<td class="mono">' + qty.toFixed(6).replace(/\.?0+$/, '') + '</td>' +
+                        '<td class="mono">' + (value === null ? '—' : App.money(value)) + '</td></tr>';
+                });
+                assetsBody.innerHTML = html;
+            } catch (err) {
+                console.error('loadProfile error:', err);
+                showToast('Error loading profile: ' + err.message, true);
+            }
         }
 
+        // ─── Upload KYC ─────────────────────────────────────────────────
         async function uploadKYC() {
-            const file = document.getElementById('kyc-file').files[0];
-            if (!file) { alert('Please select an image file.'); return; }
-            const fileName = `${currentUser.id}/${Date.now()}_${file.name}`;
-            const { error: uploadError } = await supabaseClient.storage.from('kyc_documents').upload(fileName, file);
-            if (uploadError) { alert('Upload failed: ' + uploadError.message); return; }
-            const { error } = await supabaseClient.from('profiles').update({
-                kyc_status: 'pending',
-                kyc_document_url: fileName
-            }).eq('id', currentUser.id);
-            if (error) { alert('Update failed: ' + error.message); return; }
-            alert('ID uploaded for review!');
-            loadProfile();
+            const fileInput = document.getElementById('kyc-file');
+            const file = fileInput.files[0];
+            const statusEl = document.getElementById('upload-status');
+            const btn = document.getElementById('kyc-upload-btn');
+            if (!file) {
+                showToast('Please select an image file.', true);
+                return;
+            }
+
+            // Check file type
+            if (!file.type.startsWith('image/')) {
+                showToast('Please select an image file (JPEG, PNG, etc.).', true);
+                return;
+            }
+
+            // Max size 5MB
+            if (file.size > 5 * 1024 * 1024) {
+                showToast('File size must be under 5MB.', true);
+                return;
+            }
+
+            const fileName = `${currentUser.id}/${Date.now()}_${file.name.replace(/[^\w.\-]/g, '_')}`;
+            statusEl.textContent = 'Uploading...';
+            statusEl.style.color = 'var(--brand-yellow)';
+            btn.disabled = true; // also stops the double-submit that uploaded twice
+
+            try {
+                // 1. Upload to Supabase Storage
+                const { error: uploadError } = await supabaseClient.storage
+                    .from('kyc_documents')
+                    .upload(fileName, file);
+
+                if (uploadError) {
+                    console.error('Storage upload error:', uploadError);
+                    showToast('Upload failed: ' + uploadError.message, true);
+                    statusEl.textContent = 'Upload failed';
+                    statusEl.style.color = 'var(--trade-red)';
+                    return;
+                }
+
+                // 2. Update profile with kyc_status = 'pending' and store file path
+                const { error: updateError } = await supabaseClient
+                    .from('profiles')
+                    .update({
+                        kyc_status: 'pending',
+                        kyc_document_url: fileName
+                    })
+                    .eq('id', currentUser.id);
+
+                if (updateError) {
+                    console.error('Profile update error:', updateError);
+                    showToast('Failed to update profile: ' + updateError.message, true);
+                    statusEl.textContent = 'Update failed';
+                    statusEl.style.color = 'var(--trade-red)';
+                    return;
+                }
+
+                // 3. Success
+                showToast('ID uploaded for review!');
+                statusEl.textContent = '✅ Uploaded successfully';
+                statusEl.style.color = 'var(--trade-green)';
+                fileInput.value = ''; // Clear the input
+
+                // Reload profile to reflect status
+                await loadProfile();
+            } catch (err) {
+                console.error('Unexpected error during KYC upload:', err);
+                showToast('Unexpected error: ' + err.message, true);
+                statusEl.textContent = 'Error';
+                statusEl.style.color = 'var(--trade-red)';
+            } finally {
+                btn.disabled = false;
+            }
         }
 
+        // ─── Logout ─────────────────────────────────────────────────────
         function logout() {
             supabaseClient.auth.signOut().then(() => window.location.href = './pl.html');
         }
 
+        // ─── Initialise ─────────────────────────────────────────────────
         loadProfile();
     </script>
+
+    <script src="app-base.js"></script>
     <script src="settings.js"></script>
 </body>
 

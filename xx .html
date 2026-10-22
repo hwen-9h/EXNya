@@ -132,19 +132,10 @@
             width: auto;
         }
 
+        /* One logo for both themes: the light-theme variant pointed at a
+           placeholder image that does not exist, so the brand disappeared
+           whenever light mode was on. */
         .dark-logo {
-            display: block;
-        }
-
-        .light-logo {
-            display: none;
-        }
-
-        body.light-theme .dark-logo {
-            display: none;
-        }
-
-        body.light-theme .light-logo {
             display: block;
         }
 
@@ -288,8 +279,7 @@
     <div class="signup-wrapper">
         <div class="signup-box">
             <div class="logo"><a href="./index.html"><img src="WhatsApp Image 2026-04-03 at 4.24.59 AM.jpeg" alt="EXNYA"
-                        class="dark-logo"><img src="https://placehold.co/120x40?text=EXNYA" alt="EXNYA"
-                        class="light-logo"></a></div>
+                        class="dark-logo"></a></div>
             <h2>Create an account</h2>
             <form id="signup-form">
                 <div class="input-row">

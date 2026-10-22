@@ -112,19 +112,8 @@
             width: auto;
         }
 
+        /* One logo for both themes; the light variant just repeats it. */
         .dark-logo {
-            display: block;
-        }
-
-        .light-logo {
-            display: none;
-        }
-
-        body.light-theme .dark-logo {
-            display: none;
-        }
-
-        body.light-theme .light-logo {
             display: block;
         }
 
@@ -630,11 +619,12 @@
                 </a>
             </div>
             <div class="nav-links">
+                <!-- signup.html is the canonical signup (PR #1); the rest get real targets -->
                 <a href="./signup.html">Buy Crypto</a>
                 <a href="#markets">Markets</a>
-                <a href="./pl.html">Trade</a>
-                <a href="#features">Staking</a>
-                <a href="#">OTC</a>
+                <a href="./markets.html">Trade</a>
+                <a href="./live-portfolio.html">Staking</a>
+                <a href="./p2p.html">OTC</a>
                 <a href="./abut.html">About</a>
             </div>
         </div>
@@ -677,7 +667,7 @@
     <section id="markets" class="reveal">
         <div class="market-header">
             <h2>Live Market</h2>
-            <a href="#">Explore All →</a>
+            <a href="./markets.html">Explore All →</a>
         </div>
         <div style="overflow-x:auto;">
             <table>
@@ -721,7 +711,8 @@
             exchange.</div>
         <div class="footer-bottom">
             <span>&copy; 2026 BAM Trading Services Inc. d.b.a EXNYA.</span>
-            <span>Terms of Service | Privacy Policy | Licenses</span>
+            <span><a href="./terms.html" style="color:inherit;text-decoration:none;">Terms of Service | Privacy
+                    Policy | Licenses</a></span>
         </div>
     </footer>
 
@@ -813,6 +804,25 @@
             updateParticleColor();
         }
 
+        // The theme used to reset on every reload (and the button label never
+        // matched the stored state), so remember the choice.
+        (function restoreTheme() {
+            let saved = null;
+            try { saved = localStorage.getItem('theme'); } catch (e) { /* private mode */ }
+            if (saved === 'light' && !document.body.classList.contains('light-theme')) {
+                document.body.classList.add('light-theme');
+                const btn = document.getElementById('themeBtn');
+                if (btn) btn.innerHTML = '<span>🌙</span> Dark';
+                updateParticleColor();
+            }
+            document.getElementById('themeBtn').addEventListener('click', function () {
+                try {
+                    localStorage.setItem('theme',
+                        document.body.classList.contains('light-theme') ? 'light' : 'dark');
+                } catch (e) { /* ignore */ }
+            });
+        })();
+
         const observer = new IntersectionObserver((e) => e.forEach(entry => {
             if (entry.isIntersecting) entry.target.classList.add('active');
         }), { threshold: 0.15 });
@@ -855,7 +865,7 @@
                     <td id="price-${coin.id}">$${coin.price.toLocaleString('en-US', { minimumFractionDigits: 2 })}</td>
                     <td id="change-${coin.id}" class="${isUp ? 'price-up' : 'price-down'}">${isUp ? '+' : ''}${coin.change.toFixed(2)}%</td>
                     <td id="volume-${coin.id}">${coin.vol}</td>
-                    <td style="text-align:right;"><button class="trade-btn" type="button" onclick="window.location.href=\'./pl.html\'">Trade</button></td>
+                    <td style="text-align:right;"><a class="trade-btn" href="./markets.html" style="text-decoration:none;display:inline-block;">Trade</a></td>
                 `;
                 tbody.appendChild(row);
             });
