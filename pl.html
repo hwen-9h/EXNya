@@ -188,19 +188,25 @@
                 account</button>
         </div>
         <div id="step-password">
-            <div class="form-group"><label>Email</label><input type="email" id="email" placeholder="you@example.com">
-            </div>
-            <div class="form-group"><label>Password</label><input type="password" id="password" placeholder="••••••••">
-            </div><button class="btn btn-primary" id="login-btn" onclick="handleLogin()">Sign In</button>
+            <form id="login-form" autocomplete="on" novalidate>
+                <div class="form-group"><label for="email">Email</label><input type="email" id="email" name="email"
+                        autocomplete="username" placeholder="you@example.com"></div>
+                <div class="form-group"><label for="password">Password</label><input type="password" id="password"
+                        name="password" autocomplete="current-password" placeholder="••••••••"></div>
+                <button type="submit" class="btn btn-primary" id="login-btn">Sign In</button>
+            </form>
             <p class="error-msg" id="login-error"></p>
-            <button class="link-btn" id="forgot-btn" onclick="showForgot()">Forgot your password?</button>
+            <button type="button" class="link-btn" id="forgot-btn" onclick="showForgot()">Forgot your
+                password?</button>
         </div>
         <div id="step-forgot" class="hidden">
             <p class="otp-note">Enter the email address on your account and we'll send a link to choose a new
                 password.</p>
-            <div class="form-group"><label>Email</label><input type="email" id="forgot-email"
-                    placeholder="you@example.com" autocomplete="email"></div>
-            <button class="btn btn-primary" id="forgot-send-btn" onclick="sendResetEmail()">Send reset link</button>
+            <form id="forgot-form" novalidate>
+                <div class="form-group"><label for="forgot-email">Email</label><input type="email" id="forgot-email"
+                        name="email" placeholder="you@example.com" autocomplete="email"></div>
+                <button type="submit" class="btn btn-primary" id="forgot-send-btn">Send reset link</button>
+            </form>
             <p class="error-msg" id="forgot-error"></p>
             <button class="btn" style="background:transparent;color:#5e6a7a;margin-top:12px;"
                 onclick="goBackToPassword()">← Back to sign in</button>
@@ -223,11 +229,15 @@
         </div>
         <div id="step-reset" class="hidden">
             <p class="otp-note">Choose a new password for <strong id="reset-email"></strong>.</p>
-            <div class="form-group"><label>New password</label><input type="password" id="reset-password"
-                    autocomplete="new-password" placeholder="At least 8 characters"></div>
-            <div class="form-group"><label>Confirm new password</label><input type="password" id="reset-password-2"
-                    autocomplete="new-password" placeholder="Repeat it"></div>
-            <button class="btn btn-primary" id="reset-save-btn" onclick="saveNewPassword()">Save new password</button>
+            <form id="reset-form" autocomplete="on" novalidate>
+                <div class="form-group"><label for="reset-password">New password</label><input type="password"
+                        id="reset-password" name="new-password" autocomplete="new-password"
+                        placeholder="At least 8 characters"></div>
+                <div class="form-group"><label for="reset-password-2">Confirm new password</label><input type="password"
+                        id="reset-password-2" name="confirm-password" autocomplete="new-password"
+                        placeholder="Repeat it"></div>
+                <button type="submit" class="btn btn-primary" id="reset-save-btn">Save new password</button>
+            </form>
             <p class="error-msg" id="reset-error"></p>
             <p class="error-msg ok" id="reset-done"></p>
         </div>
@@ -344,6 +354,28 @@ async function confirmSessionPersisted() {
     console.warn('[login] session was not readable after sign-in; continuing anyway');
     return false;
 }
+
+// Forms, not bare buttons: this is what lets Chrome/1Password/Bitwarden offer
+// to save and fill the password, and what makes Enter submit.
+(function wireForms() {
+    var login = document.getElementById('login-form');
+    if (login) login.addEventListener('submit', function (ev) { ev.preventDefault(); handleLogin(); });
+    var forgot = document.getElementById('forgot-form');
+    if (forgot) forgot.addEventListener('submit', function (ev) { ev.preventDefault(); sendResetEmail(); });
+    var reset = document.getElementById('reset-form');
+    if (reset) reset.addEventListener('submit', function (ev) { ev.preventDefault(); saveNewPassword(); });
+
+    // Arriving from signup (?email=...) should pre-fill, then clean the URL.
+    try {
+        var params = new URLSearchParams(location.search);
+        var pre = params.get('email');
+        if (pre) {
+            var field = document.getElementById('email');
+            if (field) field.value = pre;
+            history.replaceState(null, '', location.pathname);
+        }
+    } catch (e) { /* ignore */ }
+})();
 
 async function handleLogin() {
     const email = document.getElementById('email').value.trim().toLowerCase();
