@@ -750,21 +750,30 @@
 
         /** List the caller's enrolled factors (GET /auth/v1/factors). */
         async function listFactors() {
-            const { data: { session } } = await supabaseClient.auth.getSession();
-            if (!session) return [];
+            // GET /auth/v1/factors answers 405 — the SDK calls the correct path.
             try {
-                const res = await fetch(`${SUPABASE_URL}/auth/v1/factors`, {
-                    headers: {
-                        'apikey': SUPABASE_ANON_KEY,
-                        'Authorization': 'Bearer ' + session.access_token
-                    }
+                if (!supabaseClient.auth.mfa || typeof supabaseClient.auth.mfa.listFactors !== 'function') {
+                    return [];
+                }
+                const res = await supabaseClient.auth.mfa.listFactors();
+                if (res.error) {
+                    console.warn('[security] could not list factors:', res.error.message);
+                    return [];
+                }
+                const d = res.data || {};
+                const groups = [];
+                if (Array.isArray(d.all)) groups.push(...d.all);
+                if (Array.isArray(d.totp)) groups.push(...d.totp);
+                const seen = new Set();
+                return groups.filter(function (f) {
+                    if (!f || f.factor_type !== 'totp') return false;
+                    if (f.status && f.status !== 'verified') return false;
+                    if (seen.has(f.id)) return false;
+                    seen.add(f.id);
+                    return true;
                 });
-                if (!res.ok) return [];
-                const json = await res.json();
-                return [...(json.all || []), ...(json.totp || [])]
-                    .filter(f => f && f.factor_type === 'totp');
             } catch (e) {
-                console.warn('[security] could not list factors:', e.message);
+                console.warn('[security] factor list failed:', e && e.message);
                 return [];
             }
         }
