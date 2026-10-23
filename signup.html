@@ -376,10 +376,17 @@ document.getElementById('signup-form').addEventListener('submit', async function
         });
         if (error) throw error;
         if (!data.user) throw new Error('No account response received. Please try again.');
+        // Auto-confirm is ON for this project, so Supabase returns tokens even when
+        // data.session is null. Signing in explicitly guarantees a session before we
+        // touch the profile row, and avoids the old 'check your email' dead end that
+        // could never resolve because no confirmation email was ever sent.
         if (!data.session) {
-            alert('Account created. Check your email to confirm your address, then sign in.');
-            window.location.href = './pl.html';
-            return;
+            const { data: signInData, error: signInError } = await supabaseClient.auth.signInWithPassword({ email, password });
+            if (signInError || !signInData.session) {
+                alert('Account created. Please sign in with your new password.');
+                window.location.href = './pl.html';
+                return;
+            }
         }
         // The database trigger creates the profile; update only user-editable profile fields.
         const { error: profileError } = await supabaseClient.from('profiles')
