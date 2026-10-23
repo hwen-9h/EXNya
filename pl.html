@@ -388,7 +388,16 @@ async function handleLogin() {
     try {
         await clearOtpVerified();
         const { data, error } = await supabaseClient.auth.signInWithPassword({ email, password });
-        if (error) { showError('login-error', error.message); return; }
+        if (error) {
+            var msg = error.message || 'Sign-in failed.';
+            // Supabase reports an unconfirmed address as "Email not confirmed" —
+            // say what to do about it rather than leaving the member stuck.
+            if (/email not confirmed/i.test(msg)) {
+                msg = 'Please confirm your email first. Check your inbox for the link we sent when you signed up.';
+            }
+            showError('login-error', msg);
+            return;
+        }
         currentUser = data.user;
 
         // The enrolled factor is the source of truth (the profiles flag can be

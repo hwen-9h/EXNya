@@ -374,7 +374,11 @@ document.getElementById('signup-form').addEventListener('submit', async function
     try {
         const { data, error } = await supabaseClient.auth.signUp({
             email, password,
-            options: { data: { first_name: firstName, last_name: lastName, full_name: firstName + ' ' + lastName } }
+            options: {
+                // Where the "confirm your email" link comes back to.
+                emailRedirectTo: location.origin + location.pathname.replace(/signup\.html$/, 'confirm.html'),
+                data: { first_name: firstName, last_name: lastName, full_name: firstName + ' ' + lastName }
+            }
         });
         if (error) throw error;
         if (!data.user) throw new Error('No account response received. Please try again.');
@@ -385,8 +389,11 @@ document.getElementById('signup-form').addEventListener('submit', async function
         if (!data.session) {
             const { data: signInData, error: signInError } = await supabaseClient.auth.signInWithPassword({ email, password });
             if (signInError || !signInData.session) {
-                alert('Account created. Please sign in with your new password.');
-                window.location.href = './pl.html';
+                // Email confirmation is switched on: the account exists but
+                // cannot sign in until the link in the inbox is clicked.
+                alert('Account created. We sent a confirmation link to ' + email +
+                    '. Click it, then sign in.');
+                window.location.href = './pl.html?email=' + encodeURIComponent(email);
                 return;
             }
         }

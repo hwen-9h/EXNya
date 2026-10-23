@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="Content-Security-Policy"
+        content="default-src 'self'; script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' data: https://fonts.gstatic.com; img-src 'self' data: blob: https:; connect-src 'self' https://clwgengvcdokdzubdfxd.supabase.co wss://clwgengvcdokdzubdfxd.supabase.co; object-src 'none'; base-uri 'self'; form-action 'self'">
+    <meta name="referrer" content="strict-origin-when-cross-origin">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="robots" content="noindex, nofollow">
+    <title>EXNYA | Account recovered</title>
+    <link
+        href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600&family=Sora:wght@600;700&display=swap"
+        rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            background: #080b0f;
+            color: #e6e9ef;
+            font-family: 'DM Sans', sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .box {
+            background: #0d1117;
+            border: 1px solid #1e2733;
+            border-radius: 16px;
+            padding: 40px 32px;
+            width: 100%;
+            max-width: 420px;
+            text-align: center;
+        }
+
+        .logo { height: 38px; margin-bottom: 24px; }
+
+        h1 {
+            font-family: 'Sora', sans-serif;
+            font-size: 20px;
+            font-weight: 600;
+            margin-bottom: 12px;
+        }
+
+        p {
+            font-size: 13.5px;
+            line-height: 1.65;
+            color: #5e6a7a;
+            margin-bottom: 22px;
+        }
+
+        a.btn {
+            display: inline-block;
+            background: #fcd535;
+            color: #000;
+            text-decoration: none;
+            font-weight: 700;
+            font-size: 14px;
+            padding: 13px 28px;
+            border-radius: 8px;
+        }
+
+        a.btn:hover { background: #e6c030; }
+    </style>
+</head>
+
+<body>
+    <div class="box">
+        <img class="logo" src="WhatsApp Image 2026-04-03 at 4.24.59 AM.jpeg" alt="EXNYA">
+        <h1>You're signed in</h1>
+        <p>Your email has been confirmed. Continue to your account to get started.</p>
+        <a class="btn" href="./profile.html">Go to my account</a>
+    </div>
+
+    <script>
+        // Supabase's "Confirm signup" email lands here with the tokens in the
+        // URL fragment (#access_token=...&type=signup) or, on newer projects,
+        // as ?code=... (PKCE). Either way we simply finish the sign-in and send
+        // the member to their dashboard. If there is nothing to confirm, the
+        // button above still works for anyone already signed in.
+        const SUPABASE_URL = 'https://clwgengvcdokdzubdfxd.supabase.co';
+        const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNsd2dlbmd2Y2Rva2R6dWJkZnhkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzc5MTIxNjEsImV4cCI6MjA5MzQ4ODE2MX0.0zgizWWXLIHiKdNUAJ3yKaIaxEKsHoFeEIo8IUAMtHU';
+        const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+        (async function () {
+            var hash = window.location.hash || '';
+            var search = window.location.search || '';
+            try {
+                if (hash.indexOf('access_token=') > -1) {
+                    var params = new URLSearchParams(hash.replace(/^#/, ''));
+                    if (params.get('access_token')) {
+                        await supabaseClient.auth.setSession({
+                            access_token: params.get('access_token'),
+                            refresh_token: params.get('refresh_token') || ''
+                        });
+                    }
+                } else if (search.indexOf('code=') > -1) {
+                    await supabaseClient.auth.exchangeCodeForSession(window.location.href);
+                }
+            } catch (e) {
+                console.warn('[confirm] could not complete the sign-in:', e && e.message);
+                return;
+            }
+            // Clean the token out of the address bar before anyone screenshots it.
+            try { history.replaceState(null, '', location.pathname); } catch (e) { }
+        })();
+    </script>
+</body>
+
+</html>

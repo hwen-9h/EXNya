@@ -654,10 +654,16 @@
         }
         animate();
 
-        const observer = new IntersectionObserver((e) => e.forEach(entry => {
-            if (entry.isIntersecting) entry.target.classList.add('active');
-        }), { threshold: 0.05 });
-        document.querySelectorAll('.reveal').forEach(el => observer.observe(el));
+        // Reveal-on-scroll, with a no-observer fallback so old browsers still
+        // see the content instead of empty sections.
+        if (typeof IntersectionObserver === 'undefined') {
+            document.querySelectorAll('.reveal').forEach(el => el.classList.add('active'));
+        } else {
+            const observer = new IntersectionObserver((e) => e.forEach(entry => {
+                if (entry.isIntersecting) entry.target.classList.add('active');
+            }), { threshold: 0.05 });
+            document.querySelectorAll('.reveal').forEach(el => observer.observe(el));
+        }
 
         function toggleFaq(el) {
             let answer = el.nextElementSibling,
