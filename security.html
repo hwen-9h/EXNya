@@ -565,7 +565,7 @@
                     <h2><svg viewBox="0 0 24 24">
                             <rect x="3" y="11" width="18" height="11" rx="2" ry="2" />
                             <path d="M7 11V7a5 5 0 0 1 10 0v4" />
-                        </svg> Email‑Based Two‑Factor Authentication</h2>
+                        </svg> Two‑Factor Authentication (Authenticator App)</h2>
                     <span id="2fa-badge"></span>
                 </div>
                 <div class="toast toast-success" id="toast-success"><svg viewBox="0 0 24 24">
@@ -577,26 +577,66 @@
                         <line x1="12" y1="16" x2="12.01" y2="16" />
                     </svg><span id="toast-error-msg"></span></div>
                 <div id="2fa-status" style="color:var(--text-secondary);font-size:13px;">Loading...</div>
+
+                <!-- Not enrolled -->
                 <div id="2fa-disabled" style="display:none;">
                     <p style="margin-bottom:20px;color:var(--text-secondary);font-size:13.5px;">Add an extra layer of
-                        protection. Once enabled, you'll receive a verification code to your email every time you sign
-                        in.</p>
-                    <button class="btn btn-primary" id="enable-btn" onclick="enableEmail2FA()"><svg viewBox="0 0 24 24">
+                        protection with an authenticator app (Google Authenticator, Authy, 1Password, Microsoft
+                        Authenticator). After your password, EXNYA asks for the 6&#8209;digit code the app shows.</p>
+                    <button class="btn btn-primary" id="enable-btn" onclick="startEnrollment()"><svg viewBox="0 0 24 24">
                             <rect x="3" y="11" width="18" height="11" rx="2" ry="2" />
                             <path d="M7 11V7a5 5 0 0 1 10 0v4" />
-                        </svg> Enable Email 2FA</button>
+                        </svg> Set up authenticator app</button>
                 </div>
+
+                <!-- Enrollment in progress -->
+                <div id="2fa-setup" style="display:none;">
+                    <ol style="margin:0 0 18px 18px;color:var(--text-secondary);font-size:13.5px;line-height:1.8;">
+                        <li>Open your authenticator app and add a new account.</li>
+                        <li>Scan the QR code below, or type the setup key by hand.</li>
+                        <li>Enter the 6&#8209;digit code the app shows.</li>
+                    </ol>
+                    <div id="totp-qr"
+                        style="background:#fff;padding:12px;border-radius:12px;width:219px;height:219px;margin:0 auto 14px;">
+                    </div>
+                    <div style="text-align:center;margin-bottom:18px;">
+                        <div style="font-size:11px;text-transform:uppercase;letter-spacing:.1em;color:var(--text-muted);margin-bottom:6px;">
+                            Can't scan? Enter this key</div>
+                        <code id="totp-secret"
+                            style="font-family:'JetBrains Mono',monospace;font-size:13px;letter-spacing:1px;word-break:break-all;color:var(--brand-yellow);"></code>
+                        <div style="margin-top:8px;"><button class="btn btn-outline" onclick="copySetupKey()">Copy
+                                key</button></div>
+                    </div>
+                    <div class="form-group" style="margin-bottom:14px;">
+                        <label
+                            style="display:block;font-size:11px;text-transform:uppercase;letter-spacing:.1em;color:var(--text-muted);margin-bottom:6px;">6-digit
+                            code</label>
+                        <input type="text" id="totp-code" inputmode="numeric" autocomplete="one-time-code" maxlength="6"
+                            placeholder="000000"
+                            style="width:100%;padding:12px 14px;background:var(--bg-base);border:1px solid var(--border-light);border-radius:8px;color:var(--text-primary);font-family:'JetBrains Mono',monospace;font-size:18px;letter-spacing:6px;text-align:center;">
+                    </div>
+                    <button class="btn btn-primary" id="totp-confirm-btn" onclick="confirmEnrollment()">Activate
+                        2FA</button>
+                    <button class="btn btn-outline" style="margin-top:8px;" onclick="cancelEnrollment()">Cancel</button>
+                </div>
+
+                <!-- Enrolled -->
                 <div id="2fa-enabled" style="display:none;">
-                    <p style="color:var(--text-secondary);font-size:13.5px;margin-bottom:20px;">Email two‑factor
-                        authentication is active. After signing in, a code will be sent to your email.</p>
+                    <p style="color:var(--text-secondary);font-size:13.5px;margin-bottom:20px;">Authenticator‑app
+                        two‑factor authentication is active. After signing in you'll be asked for the current code from
+                        your app.</p>
                     <button class="btn btn-danger" onclick="showDisableConfirm()"><svg viewBox="0 0 24 24">
                             <rect x="3" y="11" width="18" height="11" rx="2" ry="2" />
                             <path d="M7 11V7a5 5 0 0 1 9.9-1" />
-                        </svg> Disable Email 2FA</button>
+                        </svg> Disable 2FA</button>
                     <div class="inline-confirm" id="disable-confirm">
-                        <p>This will remove the extra email verification step from your account. Are you sure?</p>
+                        <p>Enter a current code from your authenticator app to confirm. Without it, anyone who has your
+                            password could turn 2FA off.</p>
+                        <input type="text" id="disable-code" inputmode="numeric" autocomplete="one-time-code"
+                            maxlength="6" placeholder="000000"
+                            style="width:100%;padding:11px 14px;background:var(--bg-base);border:1px solid var(--border-light);border-radius:8px;color:var(--text-primary);font-family:'JetBrains Mono',monospace;font-size:16px;letter-spacing:5px;text-align:center;margin-bottom:12px;">
                         <div class="inline-confirm-btns">
-                            <button class="btn btn-danger" id="disable-confirm-btn" onclick="disableEmail2FA()">Yes,
+                            <button class="btn btn-danger" id="disable-confirm-btn" onclick="disableTotp()">Yes,
                                 disable</button>
                             <button class="btn btn-outline" onclick="hideDisableConfirm()">Cancel</button>
                         </div>
@@ -700,6 +740,33 @@
             hideDisableConfirm();
         }
 
+        // ── TOTP (authenticator app) ────────────────────────────────────
+        // Supabase Auth handles the factor, the secret and code checking on the
+        // server; the browser only shows the QR and sends the 6 digits back.
+        // The secret is never written to the profiles table.
+        let totpFactorId = null;
+
+        /** List the caller's enrolled factors (GET /auth/v1/factors). */
+        async function listFactors() {
+            const { data: { session } } = await supabaseClient.auth.getSession();
+            if (!session) return [];
+            try {
+                const res = await fetch(`${SUPABASE_URL}/auth/v1/factors`, {
+                    headers: {
+                        'apikey': SUPABASE_ANON_KEY,
+                        'Authorization': 'Bearer ' + session.access_token
+                    }
+                });
+                if (!res.ok) return [];
+                const json = await res.json();
+                return [...(json.all || []), ...(json.totp || [])]
+                    .filter(f => f && f.factor_type === 'totp');
+            } catch (e) {
+                console.warn('[security] could not list factors:', e.message);
+                return [];
+            }
+        }
+
         async function init() {
             // Must be the verified gate, not requireSession: with 2FA on, an
             // attacker with just the password could otherwise open this page
@@ -710,57 +777,130 @@
             document.getElementById('user-initials').textContent = (currentUser.email[0] || 'U').toUpperCase();
             document.getElementById('user-fullname').textContent = currentUser.email;
             document.getElementById('user-email-display').textContent = currentUser.email;
-            const { data: profile } = await supabaseClient.from('profiles').select('is_2fa_enabled').eq('id', currentUser
-                .id).single();
-            if (!profile || profile.is_2fa_enabled === undefined) {
-                await supabaseClient.from('profiles').upsert({
-                    id: currentUser.id, email: currentUser.email,
-                    is_2fa_enabled: false, totp_secret: null
-                });
-                is2FAEnabled = false;
-            } else {
-                is2FAEnabled = profile.is_2fa_enabled;
+
+            // The real source of truth is Supabase's factor list, not the flag.
+            const factors = await listFactors();
+            if (factors.length && !is2FAEnabled) {
+                // Heal a stale flag left by the old email-2FA code.
+                await supabaseClient.from('profiles').update({ is_2fa_enabled: true }).eq('id', currentUser.id);
             }
+            is2FAEnabled = factors.length > 0;
+            totpFactorId = is2FAEnabled ? factors[0].id : null;
             updateUI();
         }
 
-        async function enableEmail2FA() {
+        async function startEnrollment() {
             const btn = document.getElementById('enable-btn');
-            const origHTML = btn.innerHTML;
+            const orig = btn.innerHTML;
             btn.disabled = true;
-            btn.innerHTML = '<div class="spinner"></div> Enabling…';
-            const { error } = await supabaseClient.from('profiles').upsert({
-                id: currentUser.id, email: currentUser
-                    .email, is_2fa_enabled: true, totp_secret: null
-            });
-            if (error) {
-                showToast('error', error.message);
+            btn.innerHTML = '<div class="spinner"></div> Preparing…';
+            try {
+                // Clear any half-finished factor so the app never ends up with
+                // two entries for the same account.
+                for (const f of await listFactors()) {
+                    await supabaseClient.auth.mfa.unenroll({ factorId: f.id }).catch(() => {});
+                }
+                const { data, error } = await supabaseClient.auth.mfa.enroll({
+                    factorType: 'totp',
+                    friendlyName: 'EXNYA ' + (currentUser.email || 'account')
+                });
+                if (error) throw error;
+
+                totpFactorId = data.id;
+                const totp = data.totp || {};
+                const qr = document.getElementById('totp-qr');
+                qr.innerHTML = totp.qr_code || '';   // Supabase returns an <svg> string
+                const svg = qr.querySelector('svg');
+                if (svg) { svg.setAttribute('width', '219'); svg.setAttribute('height', '219'); }
+                document.getElementById('totp-secret').textContent = totp.secret || '';
+                document.getElementById('totp-code').value = '';
+
+                document.getElementById('2fa-disabled').style.display = 'none';
+                document.getElementById('2fa-setup').style.display = 'block';
+                document.getElementById('totp-code').focus();
+            } catch (err) {
+                showToast('error', err.message || 'Could not start 2FA setup.');
+            } finally {
                 btn.disabled = false;
-                btn.innerHTML = origHTML;
-                return;
+                btn.innerHTML = orig;
             }
-            is2FAEnabled = true;
-            updateUI();
-            showToast('success', 'Email 2FA is now active.');
         }
 
-        async function disableEmail2FA() {
-            const btn = document.getElementById('disable-confirm-btn');
+        function cancelEnrollment() {
+            document.getElementById('2fa-setup').style.display = 'none';
+            document.getElementById('2fa-disabled').style.display = 'block';
+        }
+
+        async function copySetupKey() {
+            const secret = document.getElementById('totp-secret').textContent.trim();
+            if (!secret) return;
+            const ok = App.copyText(secret);
+            showToast(ok ? 'success' : 'error', ok ? 'Setup key copied.' : 'Could not copy — select the key manually.');
+        }
+
+        async function confirmEnrollment() {
+            const btn = document.getElementById('totp-confirm-btn');
+            const code = (document.getElementById('totp-code').value || '').replace(/\D/g, '');
+            if (!totpFactorId) { showToast('error', 'Start the setup again.'); return; }
+            if (code.length !== 6) { showToast('error', 'Enter the 6-digit code from your app.'); return; }
+
+            const orig = btn.textContent;
             btn.disabled = true;
-            btn.innerHTML = '<div class="spinner spinner-light"></div> Disabling…';
-            const { error } = await supabaseClient.from('profiles').upsert({
-                id: currentUser.id, email: currentUser
-                    .email, is_2fa_enabled: false, totp_secret: null
-            });
-            if (error) {
-                showToast('error', error.message);
+            btn.textContent = 'Verifying…';
+            try {
+                const { error } = await supabaseClient.auth.mfa.challengeAndVerify({
+                    factorId: totpFactorId,
+                    code: code
+                });
+                if (error) throw error;
+
+                // Code accepted: record the flag and mark this tab as verified so
+                // the user is not immediately asked for the code they just typed.
+                await supabaseClient.from('profiles').update({ is_2fa_enabled: true }).eq('id', currentUser.id);
+                is2FAEnabled = true;
+                try { sessionStorage.setItem('exnya_otp_verified', currentUser.id); } catch (e) { /* private mode */ }
+                document.getElementById('2fa-setup').style.display = 'none';
+                updateUI();
+                showToast('success', 'Two-factor authentication is now active.');
+            } catch (err) {
+                showToast('error', 'That code was not accepted. Check your app and try again.');
+            } finally {
                 btn.disabled = false;
-                btn.textContent = 'Yes, disable';
-                return;
+                btn.textContent = orig;
             }
-            is2FAEnabled = false;
-            updateUI();
-            showToast('success', 'Email 2FA has been disabled.');
+        }
+
+        async function disableTotp() {
+            const btn = document.getElementById('disable-confirm-btn');
+            const code = (document.getElementById('disable-code').value || '').replace(/\D/g, '');
+            if (!totpFactorId) { showToast('error', 'No authenticator is set up.'); return; }
+            if (code.length !== 6) { showToast('error', 'Enter a current code from your app to confirm.'); return; }
+            const orig = btn.textContent;
+            btn.disabled = true;
+            btn.textContent = 'Disabling…';
+            try {
+                // Prove possession of the device before removing the factor.
+                const { error: verifyError } = await supabaseClient.auth.mfa.challengeAndVerify({
+                    factorId: totpFactorId,
+                    code: code
+                });
+                if (verifyError) throw verifyError;
+
+                const { error } = await supabaseClient.auth.mfa.unenroll({ factorId: totpFactorId });
+                if (error) throw error;
+
+                await supabaseClient.from('profiles').update({ is_2fa_enabled: false }).eq('id', currentUser.id);
+                is2FAEnabled = false;
+                totpFactorId = null;
+                document.getElementById('disable-code').value = '';
+                updateUI();
+                showToast('success', 'Two-factor authentication has been disabled.');
+            } catch (err) {
+                showToast('error', err.message || 'Could not disable 2FA.');
+            } finally {
+                btn.disabled = false;
+                btn.textContent = orig;
+            }
         }
 
         function logout() {
