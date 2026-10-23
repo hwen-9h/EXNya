@@ -230,6 +230,9 @@
         <div id="step-reset" class="hidden">
             <p class="otp-note">Choose a new password for <strong id="reset-email"></strong>.</p>
             <form id="reset-form" autocomplete="on" novalidate>
+                <div class="form-group"><label for="reset-username">Account</label><input type="email" id="reset-username"
+                        name="username" autocomplete="username" readonly tabindex="-1"
+                        style="opacity:.65;cursor:default"></div>
                 <div class="form-group"><label for="reset-password">New password</label><input type="password"
                         id="reset-password" name="new-password" autocomplete="new-password"
                         placeholder="At least 8 characters"></div>
@@ -539,12 +542,23 @@ async function sendResetEmail() {
     }
 }
 
+/** Keep the reset form's username field in step with the account. */
+function setResetUsername(email) {
+    var field = document.getElementById('reset-username');
+    if (field) field.value = email || '';
+}
+
 /** Show the "set a new password" form after the emailed link is used. */
 function showResetForm() {
     hideAllSteps();
     var el = document.getElementById('step-reset');
     if (!el) return;
     el.classList.remove('hidden');
+    var f = document.getElementById('reset-username');
+    if (f && !f.value) {
+        var noted = document.getElementById('reset-email');
+        if (noted && noted.textContent) f.value = noted.textContent.trim();
+    }
     var pw = document.getElementById('reset-password');
     if (pw) pw.focus();
 }
@@ -620,6 +634,7 @@ function goToSignup() { window.location.href = './signup.html'; }
                 var who = res.data && res.data.user ? res.data.user.email : '';
                 var el = document.getElementById('reset-email');
                 if (el) el.textContent = who || '';
+                setResetUsername(who);
                 showResetForm();
             });
             return;
@@ -633,6 +648,7 @@ function goToSignup() { window.location.href = './signup.html'; }
             var who = res.data && res.data.user ? res.data.user.email : '';
             var el = document.getElementById('reset-email');
             if (el) el.textContent = who || '';
+            setResetUsername(who);
             showResetForm();
         }).catch(function () { });
     }
