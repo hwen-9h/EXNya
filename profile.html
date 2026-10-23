@@ -668,8 +668,26 @@
         // ─── Load profile ──────────────────────────────────────────────
         async function loadProfile() {
             try {
-                const auth = await App.requireVerifiedSession();
-                if (!auth) return;
+                // Retry the guard once: storage can be a few milliseconds behind
+                // the signInWithPassword() that preceded this navigation.
+                let auth = await App.getAuth();
+                if (!auth) {
+                    await new Promise(r => setTimeout(r, 250));
+                    auth = await App.getAuth();
+                }
+                if (!auth) {
+                    console.warn('[profile] still no session after retry -> sign-in page');
+                    window.location.href = './pl.html';
+                    return;
+                }
+                // 2FA gate (separate from the session check, so we can tell the
+                // two failures apart in the console).
+                const flags = await App.getAccountFlags(auth.user.id);
+                if (flags && flags.is_2fa_enabled && !App.isOtpVerified(auth.user.id)) {
+                    console.warn('[profile] 2FA enrolled, no code entered in this tab -> sign-in page');
+                    window.location.href = './pl.html';
+                    return;
+                }
                 currentUser = auth.user;
 
                 // Narrow projection, as introduced in PR #1: do not ship every

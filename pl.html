@@ -253,9 +253,15 @@ function markOtpVerified(userId) {
 }
 
 async function clearOtpVerified() {
-    try { sessionStorage.removeItem(OTP_KEY); } catch (e) { /* ignore */ }
-    // A previous session's proof must not unlock this one.
-    await supabaseClient.auth.signOut();
+    try {
+        sessionStorage.removeItem(OTP_KEY);
+        sessionStorage.removeItem('exnya_otp_pending');
+        sessionStorage.removeItem('exnya_otp_sent_at');
+    } catch (e) { /* ignore */ }
+    // Only drop the stored proof. Do NOT signOut() from the sign-in page: that
+    // wrote a fresh "signed-out" snapshot to storage, and the next page could
+    // read it in the gap before signInWithPassword wrote the new session —
+    // which is exactly the "signs me in then immediately logs me out" loop.
 }
 
 // Remember on this (2FA) page that the code was already entered, so resuming a
@@ -322,6 +328,23 @@ function setStepMessage(email) {
     if (resend) resend.style.display = 'none';   // nothing to resend
 }
 
+/**
+ * signInWithPassword() resolves with the session, but storage is written
+ * asynchronously. Navigating in the same tick can land on a page that reads
+ * storage before the write is visible. Wait until getSession() agrees.
+ */
+async function confirmSessionPersisted() {
+    for (var attempt = 0; attempt < 10; attempt++) {
+        try {
+            var res = await supabaseClient.auth.getSession();
+            if (res && res.data && res.data.session && res.data.session.access_token) return true;
+        } catch (e) { /* keep waiting */ }
+        await new Promise(function (r) { setTimeout(r, 100); });
+    }
+    console.warn('[login] session was not readable after sign-in; continuing anyway');
+    return false;
+}
+
 async function handleLogin() {
     const email = document.getElementById('email').value.trim().toLowerCase();
     const password = document.getElementById('password').value;
@@ -349,6 +372,7 @@ async function handleLogin() {
         const factors = await listTotpFactors();
         if (!factors.length) {
             // No authenticator enrolled: normal sign-in.
+            await confirmSessionPersisted();
             window.location.href = './profile.html';
             return;
         }
@@ -512,6 +536,8 @@ async function saveNewPassword() {
 }
 
 function continueToDashboard() { window.location.href = './profile.html'; }
+
+// Signed in from the resume bar: nothing to wait for, the session is on disk.
 
 async function goBackToPassword() {
     document.getElementById('step-otp').classList.add('hidden');

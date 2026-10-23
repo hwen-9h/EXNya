@@ -164,6 +164,7 @@
         var options = opts || {};
         var auth = await getAuth();
         if (!auth) {
+            console.warn('[app-base] no session on ' + global.location.pathname + ' -> back to ' + LOGIN_PAGE);
             global.location.href = options.redirect || LOGIN_PAGE;
             return null;
         }
@@ -183,6 +184,7 @@
         if (!auth) return null;
         var flags = await getAccountFlags(auth.user.id);
         if (flags && flags.is_2fa_enabled && !isOtpVerified(auth.user.id)) {
+            console.warn('[app-base] 2FA enrolled and this tab has not passed a code -> ' + LOGIN_PAGE);
             global.location.href = (opts && opts.redirect) || LOGIN_PAGE;
             return null;
         }
