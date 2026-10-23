@@ -116,6 +116,25 @@
             margin-top: 6px;
         }
 
+        .error-msg.ok {
+            color: #0ecb81;
+        }
+
+        .link-btn {
+            background: none;
+            border: none;
+            padding: 0;
+            margin-top: 14px;
+            font-size: 13px;
+            color: #fcd535;
+            cursor: pointer;
+            font-family: inherit;
+        }
+
+        .link-btn:hover {
+            text-decoration: underline;
+        }
+
         .hidden {
             display: none;
         }
@@ -167,6 +186,24 @@
             <div class="form-group"><label>Password</label><input type="password" id="password" placeholder="••••••••">
             </div><button class="btn btn-primary" id="login-btn" onclick="handleLogin()">Sign In</button>
             <p class="error-msg" id="login-error"></p>
+            <button class="link-btn" id="forgot-btn" onclick="showForgot()">Forgot your password?</button>
+        </div>
+        <div id="step-forgot" class="hidden">
+            <p class="otp-note">Enter the email address on your account and we'll send a link to choose a new
+                password.</p>
+            <div class="form-group"><label>Email</label><input type="email" id="forgot-email"
+                    placeholder="you@example.com" autocomplete="email"></div>
+            <button class="btn btn-primary" id="forgot-send-btn" onclick="sendResetEmail()">Send reset link</button>
+            <p class="error-msg" id="forgot-error"></p>
+            <button class="btn" style="background:transparent;color:#5e6a7a;margin-top:12px;"
+                onclick="goBackToPassword()">← Back to sign in</button>
+        </div>
+        <div id="step-forgot-sent" class="hidden">
+            <p class="otp-note">If an account exists for <strong id="forgot-sent-email"></strong> you'll get an email
+                with a reset link in the next minute or two. The link expires after one hour.</p>
+            <p class="otp-note" style="font-size:11px;">Nothing arrived? Check your spam folder, or
+                <a href="#" onclick="showForgot();return false;" style="color:#fcd535;">try again</a>.</p>
+            <button class="btn btn-primary" onclick="goBackToPassword()">Back to sign in</button>
         </div>
         <div id="step-otp" class="hidden">
             <p class="otp-note" id="otp-note">Open your authenticator app and enter the 6&#8209;digit code for <strong id="otp-email"></strong>.</p>
@@ -176,6 +213,16 @@
             <p class="error-msg" id="otp-error"></p><button class="btn"
                 style="background:transparent;color:#5e6a7a;margin-top:12px;" onclick="goBackToPassword()">←
                 Back</button>
+        </div>
+        <div id="step-reset" class="hidden">
+            <p class="otp-note">Choose a new password for <strong id="reset-email"></strong>.</p>
+            <div class="form-group"><label>New password</label><input type="password" id="reset-password"
+                    autocomplete="new-password" placeholder="At least 8 characters"></div>
+            <div class="form-group"><label>Confirm new password</label><input type="password" id="reset-password-2"
+                    autocomplete="new-password" placeholder="Repeat it"></div>
+            <button class="btn btn-primary" id="reset-save-btn" onclick="saveNewPassword()">Save new password</button>
+            <p class="error-msg" id="reset-error"></p>
+            <p class="error-msg ok" id="reset-done"></p>
         </div>
         <div style="margin-top:18px;font-size:13px;color:#5e6a7a;">No account yet?
             <a href="./signup.html" style="color:#fcd535;text-decoration:none;">Create one</a>
@@ -315,6 +362,92 @@ async function handleVerifyOTP() {
     }
 }
 
+// ── Password reset ─────────────────────────────────────────────────────
+// Supabase emails a recovery link. Clicking it returns here as
+//   pl.html#access_token=…&type=recovery
+// which the listener at the bottom of this file picks up and turns into the
+// "choose a new password" form.
+
+function hideAllSteps() {
+    ['step-password', 'step-otp', 'step-forgot', 'step-forgot-sent', 'step-reset'].forEach(function (id) {
+        var el = document.getElementById(id);
+        if (el) el.classList.add('hidden');
+    });
+}
+
+function showForgot() {
+    hideAllSteps();
+    document.getElementById('step-forgot').classList.remove('hidden');
+    showError('forgot-error', '');
+    var email = document.getElementById('email');
+    var f = document.getElementById('forgot-email');
+    if (email && email.value) f.value = email.value.trim();
+    f.focus();
+}
+
+async function sendResetEmail() {
+    var input = document.getElementById('forgot-email');
+    var email = (input.value || '').trim().toLowerCase();
+    var btn = document.getElementById('forgot-send-btn');
+    showError('forgot-error', '');
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+        showError('forgot-error', 'Enter a valid email address.');
+        return;
+    }
+    setBusy(btn, true, 'Sending…');
+    try {
+        var redirect = location.origin + location.pathname;
+        var result = await supabaseClient.auth.resetPasswordForEmail(email, { redirectTo: redirect });
+        if (result.error) throw result.error;
+        // Always show the same confirmation, whether or not the address exists,
+        // so the page cannot be used to find out who has an account.
+        hideAllSteps();
+        document.getElementById('forgot-sent-email').textContent = email;
+        document.getElementById('step-forgot-sent').classList.remove('hidden');
+    } catch (err) {
+        showError('forgot-error', err.message || 'Could not send the reset email. Try again in a minute.');
+    } finally {
+        setBusy(btn, false, 'Send reset link');
+    }
+}
+
+/** Show the "set a new password" form after the emailed link is used. */
+function showResetForm() {
+    hideAllSteps();
+    var el = document.getElementById('step-reset');
+    if (!el) return;
+    el.classList.remove('hidden');
+    var pw = document.getElementById('reset-password');
+    if (pw) pw.focus();
+}
+
+async function saveNewPassword() {
+    var pw = document.getElementById('reset-password').value;
+    var pw2 = document.getElementById('reset-password-2').value;
+    var btn = document.getElementById('reset-save-btn');
+    showError('reset-error', '');
+    if (!pw || pw.length < 8) { showError('reset-error', 'Use at least 8 characters.'); return; }
+    if (pw !== pw2) { showError('reset-error', 'The two passwords do not match.'); return; }
+    setBusy(btn, true, 'Saving…');
+    try {
+        var result = await supabaseClient.auth.updateUser({ password: pw });
+        if (result.error) throw result.error;
+        // do not keep the recovery token hanging around in the URL
+        try { history.replaceState(null, '', location.pathname); } catch (e) { }
+        var done = document.getElementById('reset-done');
+        if (done) done.textContent = '✅ Password changed. You can sign in with it now.';
+        document.getElementById('step-reset').classList.add('hidden');
+        document.getElementById('step-password').classList.remove('hidden');
+        document.getElementById('email').value = document.getElementById('forgot-email').value || '';
+        document.getElementById('password').value = '';
+        document.getElementById('password').focus();
+    } catch (err) {
+        showError('reset-error', err.message || 'Could not change the password. Ask for a new link.');
+    } finally {
+        setBusy(btn, false, 'Save new password');
+    }
+}
+
 async function goBackToPassword() {
     document.getElementById('step-otp').classList.add('hidden');
     document.getElementById('step-password').classList.remove('hidden');
@@ -329,6 +462,49 @@ async function goBackToPassword() {
 // Link back to signup: the page had no way out to account creation.
 function goToSignup() { window.location.href = './signup.html'; }
 
+
+// ── Password-recovery link landing ─────────────────────────────────────
+// Supabase sends the user back with the tokens in the URL fragment (hash) or,
+// for newer projects, as a PKCE ?code=. Both are handled here, and only when
+// this page actually is the redirect target.
+(function handleRecoveryLink() {
+    var hash = window.location.hash || '';
+    var search = window.location.search || '';
+
+    // 2a. Implicit flow: #access_token=…&refresh_token=…&type=recovery
+    if (hash.indexOf('access_token=') > -1) {
+        var params = new URLSearchParams(hash.replace(/^#/, ''));
+        if (params.get('type') === 'recovery' && params.get('access_token')) {
+            supabaseClient.auth.setSession({
+                access_token: params.get('access_token'),
+                refresh_token: params.get('refresh_token') || ''
+            }).then(function (res) {
+                if (res.error) {
+                    hideAllSteps();
+                    document.getElementById('step-forgot').classList.remove('hidden');
+                    showError('forgot-error', 'That reset link has expired. Request a new one.');
+                    return;
+                }
+                var who = res.data && res.data.user ? res.data.user.email : '';
+                var el = document.getElementById('reset-email');
+                if (el) el.textContent = who || '';
+                showResetForm();
+            });
+            return;
+        }
+    }
+
+    // 2b. PKCE flow: ?code=…
+    if (search.indexOf('code=') > -1) {
+        supabaseClient.auth.exchangeCodeForSession(window.location.href).then(function (res) {
+            if (res.error) return;                     // not a recovery link, ignore
+            var who = res.data && res.data.user ? res.data.user.email : '';
+            var el = document.getElementById('reset-email');
+            if (el) el.textContent = who || '';
+            showResetForm();
+        }).catch(function () { });
+    }
+})();
 
 (async function resumeSession() {
     try {
