@@ -748,7 +748,7 @@
         // The secret is never written to the profiles table.
         let totpFactorId = null;
 
-        /** List the caller's enrolled factors (GET /auth/v1/factors). */
+        /** List the caller's enrolled authenticator factors. */
         async function listFactors() {
             // GET /auth/v1/factors answers 405 — the SDK calls the correct path.
             try {
