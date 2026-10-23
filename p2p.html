@@ -1171,6 +1171,19 @@
         // ─── P2P Core Functions ───────────────────────────────────────
 
         // Initiate a trade (buyer clicks "Buy") – now uses internal ledger for seller check
+        // Trade state machine. The server validates the transition, moves the
+        // balances atomically and writes the ledger; the browser only asks.
+        // Actions: match | fund | paid | complete | dispute | cancel
+        async function p2pAction(tradeId, action) {
+            const { data, error } = await supabaseClient.rpc('p2p_transition', {
+                p_trade_id: tradeId,
+                p_action: action
+            });
+            if (error) throw new Error(error.message || ('Could not ' + action + ' this trade'));
+            if (!data || data.ok !== true) throw new Error('The server did not confirm that change.');
+            return data;
+        }
+
         async function initiateTrade(adId) {
             if (isProcessing) return;
             if (currentProfile.kyc_status !== 'verified') {
@@ -1185,36 +1198,13 @@
 
             isProcessing = true;
             try {
-                // 1. Match the trade
-                const { error: matchError } = await supabaseClient
-                    .from('p2p_trades')
-                    .update({ matched_user_id: currentUser.id, status: 'matched' })
-                    .eq('id', adId);
-                if (matchError) throw new Error('Match failed: ' + matchError.message);
-
-                // 2. 🔥 Check seller's balance from user_assets (internal ledger)
-                const sellerBalance = await getUserAssetBalanceForUser(ad.user_id, ad.asset_symbol);
-                const requiredAmount = parseFloat(ad.amount);
-                if (sellerBalance < requiredAmount) {
-                    // Rollback match
-                    await supabaseClient.from('p2p_trades').update({ matched_user_id: null, status: 'open' }).eq('id', adId);
-                    throw new Error(`Seller does not have enough balance in their portfolio. Available: ${sellerBalance}, Required: ${requiredAmount}`);
-                }
-
-                // 3. Mark trade as escrowed (funds reserved)
-                await supabaseClient
-                    .from('p2p_trades')
-                    .update({
-                        escrow_status: 'pending',
-                        status: 'escrowed',
-                        escrow_address: 'internal-ledger-hold',
-                        escrow_chain: ad.escrow_chain || 'base-sepolia',
-                    })
-                    .eq('id', adId);
-
-                alert('✅ Trade matched! Seller\'s funds are reserved. Please send fiat payment to the seller.');
+                // The server claims the ad, re-checks the seller's balance and
+                // moves the trade to 'matched'. A tampered page cannot set
+                // escrow_status or pump a price here any more.
+                await p2pAction(adId, 'match');
+                alert('✅ Trade matched! The seller\'s funds are reserved. Please send the fiat payment.');
             } catch (err) {
-                alert('❌ ' + err.message);
+                alert('❌ ' + (err.message || 'Could not start this trade.'));
             } finally {
                 isProcessing = false;
                 await loadData();
@@ -1222,11 +1212,20 @@
             }
         }
 
-        // Update trade status (fund, paid, completed, disputed, cancelled)
         async function updateTradeStatus(tradeId, newStatus) {
             if (isProcessing) return;
             const trade = myTrades.find(t => t.id === tradeId);
             if (!trade) return;
+
+            const map = {
+                fund: { action: 'fund', done: '✅ Escrow funded!' },
+                paid: { action: 'paid', done: '✅ Payment marked. Waiting for the seller to release the crypto.' },
+                completed: { action: 'complete', done: '✅ Trade completed! The crypto has been released.' },
+                disputed: { action: 'dispute', done: '⛔ Dispute raised. Support will review it.' },
+                cancelled: { action: 'cancel', done: '⛔ Trade cancelled.' }
+            };
+            const step = map[newStatus];
+            if (!step) return;
 
             isProcessing = true;
             const btn = document.querySelector(`[data-trade="${tradeId}"][data-action="${newStatus}"]`);
@@ -1234,103 +1233,14 @@
                 btn.disabled = true;
                 btn.innerHTML = '<div class="spinner"></div>';
             }
-
             try {
-                if (newStatus === 'fund') {
-                    // For internal ledger, we just mark it as funded
-                    await supabaseClient
-                        .from('p2p_trades')
-                        .update({ escrow_status: 'funded', status: 'escrowed' })
-                        .eq('id', tradeId);
-                    alert('✅ Escrow funded!');
-                }
-                else if (newStatus === 'paid') {
-                    await supabaseClient
-                        .from('p2p_trades')
-                        .update({ status: 'paid' })
-                        .eq('id', tradeId);
-                    alert('✅ Payment marked. Waiting for buyer to release crypto.');
-                }
-                else if (newStatus === 'completed') {
-                    // Buyer releases -> execute REAL Crossmint transfer (if you want real on-chain)
-                    // For now, we'll just update the internal ledger (skip Crossmint if you want pure testing)
-                    // If you want real on-chain, uncomment the Crossmint call.
-                    const { data: tradeData } = await supabaseClient
-                        .from('p2p_trades')
-                        .select('user_id, matched_user_id, asset_symbol, amount')
-                        .eq('id', tradeId)
-                        .single();
-
-                    // 🔥 Internal ledger transfer (no real crypto move)
-                    // Deduct from seller's internal balance
-                    const sellerBalance = await getUserAssetBalanceForUser(tradeData.user_id, tradeData.asset_symbol);
-                    const newSellerBalance = sellerBalance - parseFloat(tradeData.amount);
-                    if (newSellerBalance <= 0) {
-                        await supabaseClient
-                            .from('user_assets')
-                            .delete()
-                            .eq('user_id', tradeData.user_id)
-                            .eq('asset_symbol', tradeData.asset_symbol);
-                    } else {
-                        await supabaseClient
-                            .from('user_assets')
-                            .update({ quantity: newSellerBalance })
-                            .eq('user_id', tradeData.user_id)
-                            .eq('asset_symbol', tradeData.asset_symbol);
-                    }
-
-                    // Add to buyer's internal balance
-                    const buyerBalance = await getUserAssetBalanceForUser(tradeData.matched_user_id, tradeData.asset_symbol);
-                    if (buyerBalance > 0) {
-                        await supabaseClient
-                            .from('user_assets')
-                            .update({ quantity: buyerBalance + parseFloat(tradeData.amount) })
-                            .eq('user_id', tradeData.matched_user_id)
-                            .eq('asset_symbol', tradeData.asset_symbol);
-                    } else {
-                        await supabaseClient
-                            .from('user_assets')
-                            .insert({
-                                user_id: tradeData.matched_user_id,
-                                asset_symbol: tradeData.asset_symbol,
-                                quantity: parseFloat(tradeData.amount),
-                            });
-                    }
-
-                    // Update trade status
-                    await supabaseClient
-                        .from('p2p_trades')
-                        .update({
-                            escrow_status: 'released',
-                            status: 'completed',
-                            tx_hash: 'internal-ledger-tx',
-                        })
-                        .eq('id', tradeId);
-
-                    await incrementCompletedTrades(tradeData.user_id);
-                    await incrementCompletedTrades(tradeData.matched_user_id);
-
-                    alert('✅ Trade completed! Funds transferred internally (test mode).');
-                }
-                else if (newStatus === 'disputed') {
-                    await supabaseClient.from('p2p_trades').update({ status: 'disputed' }).eq('id', tradeId);
-                    alert('⛔ Dispute raised. Admin will review.');
-                }
-                else if (newStatus === 'cancelled') {
-                    await supabaseClient
-                        .from('p2p_trades')
-                        .update({ escrow_status: 'refunded', status: 'cancelled' })
-                        .eq('id', tradeId);
-                    alert('⛔ Trade cancelled.');
-                }
+                await p2pAction(tradeId, step.action);
+                alert(step.done);
             } catch (err) {
-                alert('❌ ' + err.message);
+                alert('❌ ' + (err.message || 'Please try again.'));
             } finally {
                 isProcessing = false;
-                if (btn) {
-                    btn.disabled = false;
-                    btn.textContent = newStatus.charAt(0).toUpperCase() + newStatus.slice(1);
-                }
+                if (btn) { btn.disabled = false; }
                 await loadData();
                 renderTab();
             }
@@ -1399,10 +1309,10 @@
             if (isProcessing || !confirm('Cancel ad?')) return;
             isProcessing = true;
             try {
-                await supabaseClient.from('p2p_trades').update({ status: 'cancelled' }).eq('id', adId);
+                await p2pAction(adId, 'cancel');
                 await loadData();
                 renderTab();
-            } catch (err) { alert('❌ ' + err.message); }
+            } catch (err) { alert('❌ ' + (err.message || 'Could not cancel.')); }
             finally { isProcessing = false; }
         }
 

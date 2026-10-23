@@ -903,43 +903,38 @@
                 btn.disabled = true;
                 btn.innerHTML = '<div class="spinner"></div> Swapping…';
                 try {
-                    const newFromQty = roundQty(fromAsset.quantity - fromAmount);
-                    if (newFromQty <= 0) {
-                        const { error } = await supabaseClient.from('user_assets').delete().eq('id', fromAsset.id);
-                        if (error) throw error;
-                        delete userAssetsMap[fromSymbol];
-                    } else {
-                        const { error } = await supabaseClient.from('user_assets')
-                            .update({ quantity: newFromQty }).eq('id', fromAsset.id);
-                        if (error) throw error;
-                        userAssetsMap[fromSymbol].quantity = newFromQty;
-                    }
+                    // The SERVER performs the money move: it re-prices the pair,
+                    // rejects a quote more than 1% away from its own price, then
+                    // debits and credits atomically in one transaction. A tampered
+                    // page can no longer write its own quantity.
+                    const prices = {};
+                    Object.keys(livePrices).forEach(sym => {
+                        const v = Number(livePrices[sym]);
+                        if (isFinite(v) && v > 0) prices[sym] = v;
+                    });
+                    const { data, error } = await supabaseClient.rpc('swap_execute', {
+                        p_from_asset: fromSymbol,
+                        p_from_amount: fromAmount,
+                        p_to_asset: toSymbol,
+                        p_to_amount: toAmount,
+                        p_prices: prices
+                    });
+                    if (error) throw new Error(error.message || 'Swap failed');
+                    if (!data || data.ok !== true) throw new Error('The server did not confirm the swap.');
 
-                    const toQty = roundQty(toAmount);
-                    const toAsset = userAssetsMap[toSymbol];
-                    if (toAsset) {
-                        const newToQty = roundQty(toAsset.quantity + toQty);
-                        const { error } = await supabaseClient.from('user_assets')
-                            .update({ quantity: newToQty }).eq('id', toAsset.id);
-                        if (error) throw error;
-                        userAssetsMap[toSymbol].quantity = newToQty;
-                    } else {
-                        const { data: inserted, error } = await supabaseClient.from('user_assets').insert({
-                            user_id: currentUser.id, asset_symbol: toSymbol, quantity: toQty
-                        }).select('id').single();
-                        if (error) throw error;
-                        if (!inserted) throw new Error('Could not credit ' + toSymbol);
-                        userAssetsMap[toSymbol] = { id: inserted.id, quantity: toQty };
-                    }
+                    const credited = Number(data.to_amount);
+                    // Show the server's figure, then reload the real balances.
+                    if (roundQty(fromAsset.quantity - fromAmount) <= 0) delete userAssetsMap[fromSymbol];
+                    else userAssetsMap[fromSymbol].quantity = roundQty(fromAsset.quantity - fromAmount);
+                    if (userAssetsMap[toSymbol]) userAssetsMap[toSymbol].quantity = roundQty(userAssetsMap[toSymbol].quantity + credited);
+                    else userAssetsMap[toSymbol] = { id: null, quantity: credited };
 
                     document.getElementById('from-amount').value = '';
                     document.getElementById('to-amount').value = '';
                     updateQuote();
-                    alert('Swap successful!');
+                    alert('Swap successful! Received ' + credited.toFixed(6) + ' ' + toSymbol);
                 } catch (err) {
-                    // Partial writes: the client-side writes are not atomic, so a
-                    // failure half way leaves the local map out of sync — reload it.
-                    alert('Swap failed: ' + err.message);
+                    alert('Swap failed: ' + (err.message || 'please try again'));
                 } finally {
                     swapInProgress = false;
                     await loadUserAssets();
