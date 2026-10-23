@@ -396,9 +396,35 @@ async function sendResetEmail() {
     }
     setBusy(btn, true, 'Sending…');
     try {
-        var redirect = location.origin + location.pathname;
-        var result = await supabaseClient.auth.resetPasswordForEmail(email, { redirectTo: redirect });
-        if (result.error) throw result.error;
+        // Our own Edge Function sends the mail through Resend, so the reset
+        // email does not depend on Supabase's SMTP configuration. Falls back to
+        // Supabase's built-in mailer only if the function is missing.
+        var res = await fetch(SUPABASE_URL + '/functions/v1/send-reset', {
+            method: 'POST',
+            headers: {
+                'apikey': SUPABASE_ANON_KEY,
+                'Authorization': 'Bearer ' + SUPABASE_ANON_KEY,
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ email: email })
+        });
+        if (res.status === 404) {
+            var result = await supabaseClient.auth.resetPasswordForEmail(email, {
+                redirectTo: location.origin + location.pathname
+            });
+            if (result.error) throw result.error;
+        } else if (res.status === 429) {
+            var retry = 60;
+            try { retry = (await res.json()).retry_after || 60; } catch (e) { }
+            throw new Error('Too many attempts. Try again in about ' + Math.ceil(retry / 60) + ' minute(s).');
+        } else if (!res.ok) {
+            var msg = 'Could not send the reset email. Try again in a minute.';
+            try {
+                var payload = await res.json();
+                if (payload && payload.error) msg = payload.error;
+            } catch (e) { }
+            throw new Error(msg);
+        }
         // Always show the same confirmation, whether or not the address exists,
         // so the page cannot be used to find out who has an account.
         hideAllSteps();
