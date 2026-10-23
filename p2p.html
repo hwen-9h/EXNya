@@ -1281,6 +1281,8 @@
                     throw new Error(`You don't have enough ${symbol} in your portfolio. Available: ${myBalance}`);
                 }
 
+                // escrow_* columns are service-role only now (security part 3/4),
+                // so the browser must not try to write them on INSERT.
                 const { error } = await supabaseClient.from('p2p_trades').insert({
                     user_id: currentUser.id,
                     type,
@@ -1290,8 +1292,7 @@
                     total: amount * price,
                     payment_method: payment,
                     status: 'open',
-                    country_code: userCountryCode,
-                    escrow_chain: 'base-sepolia', // placeholder
+                    country_code: userCountryCode
                 });
                 if (error) throw new Error('Failed to create ad: ' + error.message);
                 alert('✅ Ad created!');

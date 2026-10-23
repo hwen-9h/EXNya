@@ -574,7 +574,6 @@
         const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNsd2dlbmd2Y2Rva2R6dWJkZnhkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzc5MTIxNjEsImV4cCI6MjA5MzQ4ODE2MX0.0zgizWWXLIHiKdNUAJ3yKaIaxEKsHoFeEIo8IUAMtHU';
         const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
         window.supabaseClient = supabaseClient;
-        const EDGE_FUNCTION_URL = `https://clwgengvcdokdzubdfxd.supabase.co/functions/v1/escrow`;
 
         let currentUser = null;
         let allUsers = [];
@@ -770,35 +769,27 @@
         }
 
         async function resolveDispute(tradeId, action) {
-            if (!confirm(`Are you sure you want to ${action} this trade?`)) return;
+            // The old escrow Edge Function is not deployed (it answers 503), so a
+            // dispute was impossible to resolve. Disputes now go through the same
+            // server-side state machine the traders use:  release -> complete,
+            // refund -> cancel. p2p_transition() only accepts these from an admin
+            // when the trade is disputed, and it moves the balances atomically.
+            const rpcAction = action === 'refund' ? 'cancel' : 'complete';
+            const label = action === 'refund' ? 'refund' : 'release the funds on';
+            if (!confirm(`Are you sure you want to ${label} this trade?`)) return;
             try {
-                const { data: { session } } = await supabaseClient.auth.getSession();
-                const token = session?.access_token;
-                if (!token) throw new Error('No access token');
-
-                const { data: trade } = await supabaseClient
-                    .from('p2p_trades')
-                    .select('escrow_chain')
-                    .eq('id', tradeId)
-                    .single();
-                const chain = trade?.escrow_chain || 'base-sepolia';
-
-                const response = await fetch(`${EDGE_FUNCTION_URL}/${action}`, {
-                    method: 'POST',
-                    headers: {
-                        'Authorization': `Bearer ${token}`,
-                        'Content-Type': 'application/json',
-                    },
-                    body: JSON.stringify({ tradeId, chain }),
+                const { data, error } = await supabaseClient.rpc('p2p_transition', {
+                    p_trade_id: tradeId,
+                    p_action: rpcAction
                 });
-                const result = await response.json();
-                if (!response.ok) throw new Error(result.error || 'Failed to resolve dispute');
-
-                showToast(`Trade ${action}ed successfully!`);
+                if (error) throw new Error(error.message || 'Could not resolve the dispute');
+                if (!data || data.ok !== true) throw new Error('The server did not confirm that change.');
+                showToast(`Dispute resolved: ${data.status}.`);
                 await loadDisputes();
+                await loadAdminPanel();
             } catch (err) {
                 console.error('resolveDispute error:', err);
-                showError('Error: ' + err.message);
+                showError('Error: ' + (err.message || 'please try again'));
             }
         }
 
