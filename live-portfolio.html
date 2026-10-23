@@ -3,6 +3,8 @@
 
 <head>
     <meta charset="UTF-8">
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' data: https://fonts.gstatic.com; img-src 'self' data: blob: https:; connect-src 'self' https://clwgengvcdokdzubdfxd.supabase.co wss://clwgengvcdokdzubdfxd.supabase.co https://api.coinlore.net https://ipapi.co; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'">
+    <meta name="referrer" content="strict-origin-when-cross-origin">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>EXNYA | Live Portfolio</title>
     <link
@@ -683,6 +685,16 @@
         }
 
         document.addEventListener('DOMContentLoaded', () => { loadPortfolioData(); });
+    </script>
+    <script>
+        // Defence in depth: framebust + block tab-nabbing on any outbound link.
+        (function () {
+            try { if (window.top !== window.self) window.top.location = window.self.location.href; } catch (e) { }
+            document.addEventListener("click", function (ev) {
+                var a = ev.target && ev.target.closest ? ev.target.closest("a[target=_blank]") : null;
+                if (a) a.rel = "noopener noreferrer";
+            }, true);
+        })();
     </script>
 </body>
 

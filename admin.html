@@ -3,6 +3,8 @@
 
 <head>
     <meta charset="UTF-8">
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' data: https://fonts.gstatic.com; img-src 'self' data: blob: https:; connect-src 'self' https://clwgengvcdokdzubdfxd.supabase.co wss://clwgengvcdokdzubdfxd.supabase.co https://api.coinlore.net https://ipapi.co; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'">
+    <meta name="referrer" content="strict-origin-when-cross-origin">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
     <title>EXNYA | Admin</title>
     <link
@@ -919,8 +921,8 @@
             allUsers.forEach(user => {
                 const userAssets = allAssets.filter(a => a.user_id === user.id);
                 html += `<tr>
-                    <td>${user.email}</td>
-                    <td>${userAssets.map(a => `${a.asset_symbol} (${Number(a.quantity).toFixed(4)})`).join(', ') || 'None'}</td>
+                    <td>${App.esc(user.email)}</td>
+                    <td>${userAssets.map(x => `${App.esc(x.asset_symbol)} (${Number(x.quantity).toFixed(4)})`).join(', ') || 'None'}</td>
                     <td>
                         <button class="btn btn-primary" onclick="openAddAsset('${user.id}')">+ Asset</button>
                         ${userAssets.map(a => `<button class="btn btn-outline" onclick="openEditAsset('${a.id}','${a.asset_symbol}','${Number(a.quantity)}')">Edit ${a.asset_symbol}</button>
@@ -975,6 +977,16 @@
         }
 
         document.addEventListener('DOMContentLoaded', () => { checkAdmin(); });
+    </script>
+    <script>
+        // Defence in depth: framebust + block tab-nabbing on any outbound link.
+        (function () {
+            try { if (window.top !== window.self) window.top.location = window.self.location.href; } catch (e) { }
+            document.addEventListener("click", function (ev) {
+                var a = ev.target && ev.target.closest ? ev.target.closest("a[target=_blank]") : null;
+                if (a) a.rel = "noopener noreferrer";
+            }, true);
+        })();
     </script>
 </body>
 

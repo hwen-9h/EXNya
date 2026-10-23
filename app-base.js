@@ -73,63 +73,38 @@
     const LOGIN_PAGE = './pl.html';
 
     /**
-     * Resolve the current session, refreshing only when it is actually
-     * expired. Returns { user, session } or null (after redirecting to login).
+     * Resolve the current session. Returns { user, session } or null.
      *
-     * This is what fixes the redirect loops: the old code called
-     * refreshSession() on every load, and a single failed refresh bounced the
-     * user back to the login page even though a perfectly good session
-     * existed. And the login page sent them straight back to a 2FA-less
-     * dashboard, which bounced them out of any page they clicked.
+     * NOTE: getSession() already refreshes an expired token, and supabase-js
+     * keeps refreshing in the background with the refresh token. Call this
+     * instead of refreshSession() on every page load: doing that bounced users
+     * back to the login screen whenever the auth server hiccupped, and
+     * competing refreshes can invalidate each other's refresh token.
      */
-    async function requireSession(opts) {
-        const options = opts || {};
+    async function getAuth() {
         const client = global.supabaseClient;
-        if (!client) {
-            console.error('[app-base] supabaseClient is not defined yet');
-            return null;
-        }
-        const { data: { session } } = await client.auth.getSession();
-        if (!session) {
-            global.location.href = options.redirect || LOGIN_PAGE;
-            return null;
-        }
-        // Expired (or about to expire in the next 30s)? Refresh once.
-        const expiresAt = session.expires_at ? session.expires_at * 1000 : 0;
-        if (expiresAt && expiresAt - Date.now() < 30000) {
-            const { data, error } = await client.auth.refreshSession();
-            if (!error && data && data.session) {
-                return { user: data.session.user, session: data.session };
-            }
-            // Only treat this as fatal if the session really is gone.
-        }
+        if (!client) return null;
+        if (!client.auth) return null;
+        if (!client.__exnyaAuth) client.__exnyaAuth = client.auth;
+        const { data } = await client.__exnyaAuth.getSession();
+        const session = data && data.session;
+        if (!session) return null;
         return { user: session.user, session: session };
     }
 
     /**
-     * Full entry check for a dashboard page: needs a session AND, when the
-     * account has 2FA enabled, proof that the code was entered in this tab.
-     * Returns { user, session } or null (after redirecting to ./pl.html).
+     * Page guard: needs a session AND, when the account has 2FA enabled, proof
+     * that a code was entered in this tab. Redirects to the login page and
+     * returns null otherwise.
      */
-    async function requireVerifiedSession(opts) {
-        const auth = await requireSession(opts);
-        if (!auth) return null;
-        const flags = await getAccountFlags(auth.user.id);
-        if (flags && flags.is_2fa_enabled && !isOtpVerified(auth.user.id)) {
-            global.location.href = './pl.html';
+    async function requireSession(opts) {
+        const options = opts || {};
+        const auth = await getAuth();
+        if (!auth) {
+            global.location.href = options.redirect || LOGIN_PAGE;
             return null;
         }
         return auth;
-    }
-
-    /**
-     * After login: every page with a 2FA setup lives behind this check, so it
-     * has to agree with them. `/profile` is the only page that does not require
-     * 2FA to be re-verified, which is why the login page used to send
-     * 2FA-enabled users there and every other page then bounced them out.
-     */
-    function getPostLoginTarget() {
-        return '/profile';
     }
 
     // ─── Live prices (cached, one request per 30s across pages) ────────
@@ -263,6 +238,7 @@
         money: money,
         num: num,
         copyText: copyText,
+        getAuth: getAuth,
         requireSession: requireSession,
         requireVerifiedSession: requireVerifiedSession,
         isOtpVerified: isOtpVerified,

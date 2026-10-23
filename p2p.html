@@ -3,6 +3,8 @@
 
 <head>
     <meta charset="UTF-8">
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' data: https://fonts.gstatic.com; img-src 'self' data: blob: https:; connect-src 'self' https://clwgengvcdokdzubdfxd.supabase.co wss://clwgengvcdokdzubdfxd.supabase.co https://api.coinlore.net https://ipapi.co; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'">
+    <meta name="referrer" content="strict-origin-when-cross-origin">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>EXNYA | P2P Trading</title>
     <link
@@ -1107,7 +1109,7 @@
                 const data = await res.json();
                 userCountryCode = data.country_code || 'US';
                 const countryName = data.country_name || 'United States';
-                document.getElementById('region-text').innerHTML = `${countryName} · ${userCountryCode}`;
+                document.getElementById('region-text').textContent = `${countryName} · ${userCountryCode}`;
             } catch (e) {
                 userCountryCode = 'US';
                 document.getElementById('region-text').innerHTML = 'Global · US';
@@ -1426,7 +1428,7 @@
                 let html = '<div class="orders-list">';
                 ads.forEach(ad => {
                     const owner = userCache[ad.user_id] || { first_name: 'User', merchant: false, completed_trades_count: 0 };
-                    const name = owner.first_name || 'User';
+                    const name = App.esc(owner.first_name || 'User');
                     const merchant = owner.merchant ? '⭐' : '';
                     const tradesCount = owner.completed_trades_count || 0;
                     const completion = tradesCount > 0 ? Math.min(99, Math.floor((tradesCount / (tradesCount + 1)) * 100)) : 85;
@@ -1444,9 +1446,9 @@
                                     <div class="order-price">$${parseFloat(ad.price).toFixed(2)}</div>
                                     <div>
                                         <div class="order-limits">Limits: $${parseFloat(ad.amount).toFixed(2)} - $${(parseFloat(ad.amount) * 1.5).toFixed(2)}</div>
-                                        <div class="order-amount">Amount: ${ad.amount} ${ad.asset_symbol}</div>
+                                        <div class="order-amount">Amount: ${App.esc(ad.amount)} ${App.esc(ad.asset_symbol)}</div>
                                     </div>
-                                    <div class="payment-method">${ad.payment_method}</div>
+                                    <div class="payment-method">${App.esc(ad.payment_method)}</div>
                                     ${currentProfile.kyc_status === 'verified' && ad.user_id !== currentUser.id ? `<button class="action-btn" onclick="showTradeConfirm('${ad.id}')">Buy</button>` : (ad.user_id === currentUser.id ? '<span class="status-badge status-open">Your ad</span>' : '')}
                                 </div>
                             </div>
@@ -1470,7 +1472,7 @@
                 let html = '<div class="orders-list">';
                 ads.forEach(ad => {
                     const owner = userCache[ad.user_id] || { first_name: 'User', merchant: false, completed_trades_count: 0 };
-                    const name = owner.first_name || 'User';
+                    const name = App.esc(owner.first_name || 'User');
                     const merchant = owner.merchant ? '⭐' : '';
                     const tradesCount = owner.completed_trades_count || 0;
                     const completion = tradesCount > 0 ? Math.min(99, Math.floor((tradesCount / (tradesCount + 1)) * 100)) : 85;
@@ -1488,9 +1490,9 @@
                                     <div class="order-price">$${parseFloat(ad.price).toFixed(2)}</div>
                                     <div>
                                         <div class="order-limits">Limits: $${parseFloat(ad.amount).toFixed(2)} - $${(parseFloat(ad.amount) * 1.5).toFixed(2)}</div>
-                                        <div class="order-amount">Amount: ${ad.amount} ${ad.asset_symbol}</div>
+                                        <div class="order-amount">Amount: ${App.esc(ad.amount)} ${App.esc(ad.asset_symbol)}</div>
                                     </div>
-                                    <div class="payment-method">${ad.payment_method}</div>
+                                    <div class="payment-method">${App.esc(ad.payment_method)}</div>
                                     ${currentProfile.kyc_status === 'verified' && ad.user_id !== currentUser.id ? `<button class="action-btn" onclick="showTradeConfirm('${ad.id}')">Sell</button>` : (ad.user_id === currentUser.id ? '<span class="status-badge status-open">Your ad</span>' : '')}
                                 </div>
                             </div>
@@ -1509,7 +1511,7 @@
                     `<div class="refresh-orders-btn"><button class="action-btn small" onclick="refreshOrders()">⟳ Refresh Orders</button></div><div class="orders-list">`;
                 for (const trade of myTrades) {
                     const otherId = trade.user_id === currentUser.id ? trade.matched_user_id : trade.user_id;
-                    let otherName = (otherId && userCache[otherId]) ? userCache[otherId].first_name : 'User';
+                    let otherName = App.esc((otherId && userCache[otherId] && userCache[otherId].first_name) || 'User');
                     const statusClass = `status-${trade.status}`;
                     const isBuyer = trade.matched_user_id === currentUser.id && trade.type === 'sell';
                     const isSeller = trade.user_id === currentUser.id && trade.type === 'sell';
@@ -1539,16 +1541,16 @@
                     html += `
                         <div class="order-card">
                             <div class="card-row">
-                                <div><span class="status-badge ${statusClass}">${trade.status.toUpperCase()}</span></div>
-                                <div><strong>${trade.type.toUpperCase()} ${trade.amount} ${trade.asset_symbol}</strong> @ $${parseFloat(trade.price).toFixed(2)}</div>
-                                <div>Payment: ${trade.payment_method}</div>
-                                <div>Counterparty: ${otherName}</div>
+                                <div><span class="status-badge ${statusClass}">${App.esc(String(trade.status || '').toUpperCase())}</span></div>
+                                <div><strong>${App.esc(String(trade.type || '').toUpperCase())} ${App.esc(trade.amount)} ${App.esc(trade.asset_symbol)}</strong> @ $${parseFloat(trade.price).toFixed(2)}</div>
+                                <div>Payment: ${App.esc(trade.payment_method)}</div>
+                                <div>Counterparty: ${App.esc(otherName)}</div>
                                 <div>${actions}</div>
                             </div>
                             <div class="escrow-status">
-                                Escrow: <span class="${escrowStatus}">${escrowStatus.toUpperCase()}</span>
-                                ${trade.escrow_address ? `<br><small>Contract: ${trade.escrow_address.slice(0, 10)}…</small>` : ''}
-                                ${trade.tx_hash ? `<br><small>TX: ${trade.tx_hash.slice(0, 10)}…</small>` : ''}
+                                Escrow: <span class="${App.esc(escrowStatus)}">${App.esc(String(escrowStatus).toUpperCase())}</span>
+                                ${trade.escrow_address ? `<br><small>Contract: ${App.esc(String(trade.escrow_address).slice(0, 10))}…</small>` : ''}
+                                ${trade.tx_hash ? `<br><small>TX: ${App.esc(String(trade.tx_hash).slice(0, 10))}…</small>` : ''}
                             </div>
                         </div>`;
                 }
@@ -1564,7 +1566,7 @@
                 container.innerHTML = `
                     <div class="create-form">
                         <h3>Create New Ad (Price in USD)</h3>
-                        <p style="color:var(--text-muted); font-size:13px; margin-bottom:16px;">Your ad will be visible only to users in <strong>${userCountryCode}</strong>.</p>
+                        <p style="color:var(--text-muted); font-size:13px; margin-bottom:16px;">Your ad will be visible only to users in <strong>${App.esc(userCountryCode)}</strong>.</p>
 
                         <div class="balance-widget">
                             <div class="balance-row">
@@ -1704,6 +1706,16 @@
         document.addEventListener('DOMContentLoaded', () => { init(); });
     </script>
 
+    <script>
+        // Defence in depth: framebust + block tab-nabbing on any outbound link.
+        (function () {
+            try { if (window.top !== window.self) window.top.location = window.self.location.href; } catch (e) { }
+            document.addEventListener("click", function (ev) {
+                var a = ev.target && ev.target.closest ? ev.target.closest("a[target=_blank]") : null;
+                if (a) a.rel = "noopener noreferrer";
+            }, true);
+        })();
+    </script>
 </body>
 
 </html>
