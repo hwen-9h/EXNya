@@ -28,10 +28,26 @@ import { serve } from "https://deno.land/std@0.224.0/http/server.ts";
 // @ts-ignore
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
-const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
-const SERVICE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+const SUPABASE_URL = Deno.env.get("SUPABASE_URL") ?? "";
+
+function getServiceKey() {
+  // Prefer the modern named secret key; retain legacy service-role fallback
+  // so existing deployments can rotate keys without breaking password reset.
+  const raw = Deno.env.get("SUPABASE_SECRET_KEYS");
+  if (raw) {
+    try {
+      const keys = JSON.parse(raw);
+      if (typeof keys.default === "string" && keys.default) return keys.default;
+    } catch { /* fall through to legacy server key */ }
+  }
+  return Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ??
+    Deno.env.get("SERVICE_ROLE_KEY") ?? "";
+}
+
+const SERVICE_KEY = getServiceKey();
 const RESEND_API_KEY = Deno.env.get("RESEND_API_KEY") ?? "";
-const RESEND_FROM = Deno.env.get("RESEND_FROM") ?? "EXNYA <onboarding@resend.dev>";
+const RESEND_FROM = Deno.env.get("RESEND_FROM") ??
+  Deno.env.get("RESEND_FROM_EMAIL") ?? "EXNYA <onboarding@resend.dev>";
 const APP_URL = (Deno.env.get("APP_URL") ?? "").replace(/\/+$/, "");
 
 const CORS = {
@@ -127,6 +143,11 @@ serve(async (req: Request) => {
   }
   if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
     return json({ error: "Enter a valid email address" }, 400);
+  }
+
+  if (!SUPABASE_URL || !SERVICE_KEY) {
+    console.error("Password reset service is not configured");
+    return json({ error: "Password reset service is not configured" }, 503);
   }
 
   const ip = req.headers.get("x-forwarded-for")?.split(",")[0].trim() || "unknown";

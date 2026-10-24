@@ -609,7 +609,10 @@
                     <div class="detail-row"><span>Fee (0.5%)</span><span id="detail-fee">--</span></div>
                     <div class="detail-row"><span>You'll receive</span><span id="detail-receive">--</span></div>
                 </div>
-                <button class="btn-swap" id="swap-button" onclick="executeSwap()" disabled>Enter an amount</button>
+                <button class="btn-swap" id="swap-button" onclick="executeSwap()" disabled>Swaps temporarily paused</button>
+                <p id="swap-safety-note" style="margin-top:12px;color:#a0a0a0;font-size:12px;line-height:1.5;">
+                    Swaps are paused until a trusted server-side price quote is connected. Your balances are protected and no swap will be processed.
+                </p>
             </div>
         </main>
     </div>
@@ -635,6 +638,8 @@
         const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNsd2dlbmd2Y2Rva2R6dWJkZnhkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzc5MTIxNjEsImV4cCI6MjA5MzQ4ODE2MX0.0zgizWWXLIHiKdNUAJ3yKaIaxEKsHoFeEIo8IUAMtHU';
         const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
         window.supabaseClient = supabaseClient;
+        // Browser-provided prices are display-only, never trusted for balance changes.
+        const SWAPS_ENABLED = false;
 
         let currentUser = null,
             userAssetsMap = {},
@@ -799,8 +804,8 @@
             document.getElementById('detail-rate').textContent = `1 ${selectedFrom} = ${rate.toFixed(6)} ${selectedTo}`;
             document.getElementById('detail-fee').textContent = `${fee.toFixed(6)} ${selectedFrom}`;
             document.getElementById('detail-receive').textContent = `${receive.toFixed(6)} ${selectedTo}`;
-            document.getElementById('swap-button').disabled = false;
-            document.getElementById('swap-button').textContent = 'Swap';
+            document.getElementById('swap-button').disabled = !SWAPS_ENABLED;
+            document.getElementById('swap-button').textContent = SWAPS_ENABLED ? 'Swap' : 'Swaps temporarily paused';
         }
 
         // Flip the pair. The guard on userAssetsMap[selectedFrom] used to make
@@ -878,6 +883,10 @@
         }
 
         async function executeSwap() {
+            if (!SWAPS_ENABLED) {
+                alert('Swaps are temporarily disabled until secure server-side pricing is available. Your balance has not changed.');
+                return;
+            }
             if (swapInProgress) return;
             const fromAmount = parseFloat(document.getElementById('from-amount').value);
             if (!fromAmount || fromAmount <= 0 || !selectedFrom || !selectedTo) return;

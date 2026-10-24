@@ -913,9 +913,10 @@
                     <line x1="12" y1="22" x2="12" y2="17" />
                 </svg>
                 <div class="announcement-content">
-                    <div class="announcement-title">✅ P2P Test Mode (Internal Ledger)</div>
-                    <div class="announcement-text">Balance checks use your portfolio balance for testing. Real on‑chain
-                        transfers still happen when you release funds.</div>
+                    <div class="announcement-title">P2P Test Mode — Settlement Paused</div>
+                    <div class="announcement-text">Ad creation and matching are available for testing. Funding, payment
+                        confirmation and asset release are disabled until verified escrow is configured. Do not send real
+                        money based on this test interface.</div>
                 </div>
             </div>
 
@@ -1291,7 +1292,6 @@
                     price,
                     total: amount * price,
                     payment_method: payment,
-                    status: 'open',
                     country_code: userCountryCode
                 });
                 if (error) throw new Error('Failed to create ad: ' + error.message);
