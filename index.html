@@ -605,6 +605,7 @@
             }
         }
     </style>
+    <link rel="stylesheet" href="./exnya-premium.css">
 </head>
 
 <body>
@@ -637,31 +638,39 @@
 
     <section id="hero">
         <div class="hero-content reveal">
-            <span class="hero-tag">🚀 BTC Trading — Zero Fees</span>
-            <h1 class="hero-title">Your Gateway to Global Crypto Markets</h1>
-            <p class="hero-subtitle">Explore crypto markets and manage your account from one place. Prices are indicative only; this homepage does not execute purchases or trades.</p>
-            <a href="./signup.html"><button class="btn-primary" style="padding:12px 24px; font-size:16px;">Get
-                    Started</button></a>
+            <span class="hero-tag"><span aria-hidden="true">✦</span> The next chapter of digital finance</span>
+            <h1 class="hero-title">Move at the speed of <span>crypto.</span></h1>
+            <p class="hero-subtitle">Explore global digital asset markets, follow price movements, and manage your crypto journey from one clear, powerful platform.</p>
+            <a href="./signup.html"><button class="btn-primary" style="padding:12px 24px; font-size:16px;">Start your EXNYA journey <span aria-hidden="true">↗</span></button></a>
+            <p class="hero-note" style="margin-top:18px;color:var(--text-secondary);font-size:12px;">Built for clarity. Designed for the next move.</p>
         </div>
         <div class="exchange-widget reveal">
-            <div class="widget-title">BTC Calculator</div>
+            <div class="widget-title">Explore a BTC quote</div>
+            <p style="color:var(--text-secondary);font-size:12px;line-height:1.7;margin:0 0 20px;">Get an indicative conversion preview before creating your account.</p>
             <div class="input-group">
-                <div>
-                    <div class="input-label">Spend</div>
-                    <input type="text" value="1,000" id="spend-input">
+                <div style="flex:1;min-width:0;">
+                    <div class="input-label">You spend</div>
+                    <input type="text" value="1,000" id="spend-input" aria-label="Amount in USD">
                 </div>
                 <div class="currency-badge">🇺🇸 USD</div>
             </div>
             <div class="input-group">
-                <div>
-                    <div class="input-label">Receive</div>
-                    <input type="text" value="0.01460" readonly id="receive-input">
+                <div style="flex:1;min-width:0;">
+                    <div class="input-label">Estimated receive</div>
+                    <input type="text" value="0.01460" readonly id="receive-input" aria-label="Estimated Bitcoin amount">
                 </div>
-                <div class="currency-badge" style="background:rgba(252,213,53,0.2); color:var(--brand-yellow);">₿ BTC
-                </div>
+                <div class="currency-badge" style="background:rgba(252,213,53,0.12);color:var(--brand-yellow);">₿ BTC</div>
             </div>
-            <a href="./signup.html"><button class="btn-primary widget-btn">Create account to continue</button></a>
+            <div style="display:flex;align-items:center;gap:8px;color:var(--text-secondary);font-size:11px;margin:4px 0 8px;"><span style="width:7px;height:7px;border-radius:50%;background:#20d997;display:inline-block;"></span> Indicative estimate · Not an executable quote</div>
+            <a href="./signup.html"><button class="btn-primary widget-btn">Create your account <span aria-hidden="true">→</span></button></a>
         </div>
+    </section>
+
+    <section class="proof-strip reveal" aria-label="Platform highlights">
+        <div class="proof-item"><span class="proof-value">Global</span><span class="proof-label">Market access</span></div>
+        <div class="proof-item"><span class="proof-value">24/7</span><span class="proof-label">Crypto markets</span></div>
+        <div class="proof-item"><span class="proof-value">One view</span><span class="proof-label">Your crypto journey</span></div>
+        <div class="proof-item"><span class="proof-value">Built for you</span><span class="proof-label">Simple, clear tools</span></div>
     </section>
 
     <section id="markets" class="reveal">
@@ -669,6 +678,7 @@
             <h2>Live Market</h2>
             <a href="./markets.html">Explore All →</a>
         </div>
+        <p id="market-status" style="color:var(--text-secondary);font-size:12px;margin:-10px 0 16px;">Loading indicative market data…</p>
         <div style="overflow-x:auto;">
             <table>
                 <thead>
@@ -703,6 +713,12 @@
                 </p>
             </div>
         </div>
+    </section>
+
+    <section class="exnya-cta reveal">
+        <h2>Your next move starts here.</h2>
+        <p>Discover the market, build your watchlist, and bring your digital asset activity into one focused experience.</p>
+        <a href="./signup.html"><button class="btn-primary" style="padding:14px 22px;">Create an EXNYA account <span aria-hidden="true">↗</span></button></a>
     </section>
 
     <footer>
