@@ -127,16 +127,9 @@
      * Has this tab passed the 2FA step? pl.html writes this after a code is
      * accepted. Without it a member with 2FA could open a page URL directly.
      */
-    function isOtpVerified(userId) {
-        try {
-            var value = global.sessionStorage.getItem(OTP_KEY);
-            if (!value) return false;
-            return value === 'verified' || (!!userId && value === userId);
-        } catch (e) {
-            // Storage unavailable: do not lock the member out.
-            console.warn('[app-base] sessionStorage unavailable; 2FA gate cannot be checked');
-            return true;
-        }
+    // Legacy sync helper cannot establish MFA. Use the signed Supabase AAL check.
+    function isOtpVerified() {
+        return false;
     }
 
     /** The profile fields the gate needs. Returns null when unknown. */
@@ -182,13 +175,25 @@
     async function requireVerifiedSession(opts) {
         var auth = await requireSession(opts);
         if (!auth) return null;
-        var flags = await getAccountFlags(auth.user.id);
-        if (flags && flags.is_2fa_enabled && !isOtpVerified(auth.user.id)) {
-            console.warn('[app-base] 2FA enrolled and this tab has not passed a code -> ' + LOGIN_PAGE);
+        var c = client();
+        if (!c || !c.auth || !c.auth.mfa ||
+            typeof c.auth.mfa.getAuthenticatorAssuranceLevel !== 'function') {
             global.location.href = (opts && opts.redirect) || LOGIN_PAGE;
             return null;
         }
-        return auth;
+        try {
+            var assurance = await c.auth.mfa.getAuthenticatorAssuranceLevel();
+            if (assurance.error || !assurance.data) throw (assurance.error || new Error('No MFA assurance result'));
+            if (assurance.data.nextLevel === 'aal2' && assurance.data.currentLevel !== 'aal2') {
+                global.location.href = (opts && opts.redirect) || LOGIN_PAGE;
+                return null;
+            }
+            return auth;
+        } catch (e) {
+            console.error('[app-base] MFA assurance check failed:', e && e.message);
+            global.location.href = (opts && opts.redirect) || LOGIN_PAGE;
+            return null;
+        }
     }
 
     /** Where the login page sends a member who just signed in. */
