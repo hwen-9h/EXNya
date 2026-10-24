@@ -296,35 +296,27 @@ let totpFactorId = null;
 
 /** Enrolled authenticator factors for the signed-in user (token direct). */
 async function listTotpFactors() {
-    // There is no REST endpoint for "my factors": GET /auth/v1/factors answers
-    // 405. The SDK's listFactors() calls the right path with the user's token
-    // and returns the same grouping the API uses.
+    if (!supabaseClient.auth.mfa ||
+        typeof supabaseClient.auth.mfa.listFactors !== 'function') {
+        throw new Error('Secure authenticator verification is unavailable in this browser. Update or reload the page and try again.');
+    }
     try {
-        if (!supabaseClient.auth.mfa || typeof supabaseClient.auth.mfa.listFactors !== 'function') {
-            console.warn('[login] mfa.listFactors is unavailable in this SDK build');
-            return [];
-        }
         const res = await supabaseClient.auth.mfa.listFactors();
-        if (res.error) {
-            console.warn('[login] could not list factors:', res.error.message);
-            return [];
-        }
+        if (res.error) throw res.error;
         const d = res.data || {};
         const groups = [];
         if (Array.isArray(d.all)) groups.push(...d.all);
         if (Array.isArray(d.totp)) groups.push(...d.totp);
-        // de-duplicate by id, then keep only verified TOTP factors
         const seen = new Set();
         return groups.filter(function (f) {
-            if (!f || f.factor_type !== 'totp') return false;
-            if (f.status && f.status !== 'verified') return false;
+            if (!f || f.factor_type !== 'totp' || (f.status && f.status !== 'verified')) return false;
             if (seen.has(f.id)) return false;
             seen.add(f.id);
             return true;
         });
     } catch (e) {
-        console.warn('[login] factor list failed:', e && e.message);
-        return [];
+        console.error('[login] authenticator factor lookup failed:', e && e.message);
+        throw new Error('Could not check your authenticator security status. Please retry in a moment.');
     }
 }
 
@@ -403,30 +395,31 @@ async function handleLogin() {
         }
         currentUser = data.user;
 
-        // The enrolled factor is the source of truth (the profiles flag can be
-        // stale). Load the factors from the fresh session directly.
-        // A failing lookup must not block sign-in: the factor list is the real
-        // 2FA source of truth, the flag is only a hint.
-        let profile = null;
-        try {
-            const res = await supabaseClient.from('profiles')
-                .select('is_2fa_enabled').eq('id', currentUser.id).maybeSingle();
-            profile = res.data;
-        } catch (e) { profile = null; }
+        // Use Supabase's signed assurance state as the source of truth.
+        // If either MFA check fails, stop here instead of silently skipping 2FA.
+        if (!supabaseClient.auth.mfa ||
+            typeof supabaseClient.auth.mfa.getAuthenticatorAssuranceLevel !== 'function') {
+            throw new Error('Secure authenticator verification is unavailable. Please reload the page.');
+        }
+        const assurance = await supabaseClient.auth.mfa.getAuthenticatorAssuranceLevel();
+        if (assurance.error || !assurance.data) {
+            throw new Error('Could not verify your account security status. Please try again.');
+        }
         const factors = await listTotpFactors();
-        if (!factors.length) {
-            // No authenticator enrolled: normal sign-in.
-            await confirmSessionPersisted();
-            window.location.href = './profile.html';
+        if (assurance.data.nextLevel === 'aal2') {
+            if (!factors.length) {
+                throw new Error('Your account requires an authenticator, but no verified factor was returned. Contact support.');
+            }
+            totpFactorId = factors[0].id;
+            markOtpPendingFor(currentUser.id);
+            setStepMessage(email);
             return;
         }
-        totpFactorId = factors[0].id;
-        if (profile && !profile.is_2fa_enabled) {
-            // Heal a stale flag left behind by the old email-2FA code.
-            supabaseClient.from('profiles').update({ is_2fa_enabled: true }).eq('id', currentUser.id).then(() => { }, () => { });
-        }
-        markOtpPendingFor(currentUser.id);
-        setStepMessage(email);
+
+        // No verified second factor is enrolled for this account.
+        await confirmSessionPersisted();
+        window.location.href = './profile.html';
+        return;
     } catch (error) {
         showError('login-error', error.message || 'Sign-in failed. Please try again.');
     } finally {
