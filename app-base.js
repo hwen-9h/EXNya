@@ -25,8 +25,8 @@
  *   copyText(text)                  clipboard with a non-HTTPS fallback
  *   getAuth()                       {user, session} or null
  *   requireSession(opts)            redirect to login unless signed in
- *   requireVerifiedSession(opts)    the above + 2FA code entered in this tab
- *   isOtpVerified(userId)           did this tab pass the code step?
+ *   requireVerifiedSession(opts)    the above + server-verified MFA assurance (AAL2)
+ *   isOtpVerified(userId)           legacy sync helper; never used as security proof
  *   getAccountFlags(userId)         {is_2fa_enabled} or null
  *   getPostLoginTarget()            where the login page sends people
  *   getPrices(force)                {SYMBOL: {usd, change24h}} or null
@@ -165,12 +165,8 @@
     }
 
     /**
-     * Full guard for a dashboard page: a session AND, when the account has 2FA
-     * on, proof that a code was entered in this tab.
-     *
-     * If the flag cannot be read (network, permissions) the member is let
-     * through rather than bounced: a failed lookup is not evidence of an
-     * attack, and locking people out on a hiccup is the worse failure.
+     * Full guard for a dashboard page. If Supabase says the session needs AAL2,
+     * require the server-verified MFA assurance level; fail closed on lookup errors.
      */
     async function requireVerifiedSession(opts) {
         var auth = await requireSession(opts);
