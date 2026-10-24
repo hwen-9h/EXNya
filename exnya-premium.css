@@ -553,3 +553,18 @@ body.light-theme:has(.app-container) .page-sub,
 body.light-theme:has(.app-container) .setting-group label { color: #606a76 !important; }
 body.light-theme:has(.app-container) .profile-detail .detail-box { background: #f7f8fa !important; border-color: #dce1e7 !important; }
 body.light-theme:has(.app-container) .profile-detail .value { color: #20252c !important; }
+
+.sidebar.collapsed {
+  width: var(--sidebar-collapsed-width, 64px) !important;
+  min-width: var(--sidebar-collapsed-width, 64px) !important;
+}
+body.light-theme:has(.app-container) input:not([type=checkbox]):not([type=radio]):not([type=file]),
+body.light-theme:has(.app-container) select,
+body.light-theme:has(.app-container) textarea {
+  background: #fff !important; color: #20252c !important; border-color: #d4dbe3 !important;
+}
+body.light-theme:has(.app-container) .profile-name,
+body.light-theme:has(.app-container) .card h2,
+body.light-theme:has(.app-container) .profile-detail .label { color: #20252c !important; }
+body.light-theme:has(.app-container) .logout-btn,
+body.light-theme:has(.app-container) .theme-toggle-btn { background:#fff !important; color:#343b44 !important; border-color:#d4dbe3 !important; }
