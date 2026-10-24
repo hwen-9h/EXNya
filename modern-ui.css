@@ -1,0 +1,184 @@
+/* EXNYA modern visual system — presentation only; no trading/auth logic changed */
+:root {
+  --ex-bg: #07090d;
+  --ex-panel: rgba(17, 22, 30, .88);
+  --ex-panel-2: #111720;
+  --ex-line: rgba(155, 173, 196, .14);
+  --ex-muted: #8995a7;
+  --ex-yellow: #f5cf38;
+  --ex-yellow-soft: rgba(245, 207, 56, .12);
+  --ex-green: #20d49a;
+  --ex-red: #ff6176;
+  --ex-radius: 18px;
+}
+html { scroll-behavior: smooth; }
+body {
+  background:
+    radial-gradient(ellipse at 78% 0%, rgba(245,207,56,.065), transparent 32rem),
+    radial-gradient(ellipse at 0% 55%, rgba(58,105,163,.08), transparent 34rem),
+    var(--ex-bg);
+  color: #eef2f7;
+  letter-spacing: -.012em;
+}
+body, input, select, textarea, button { font-family: 'DM Sans', 'Inter', system-ui, sans-serif; }
+button, a, input, select, textarea { -webkit-tap-highlight-color: transparent; }
+a { transition: color .18s ease, background .18s ease, border-color .18s ease; }
+button { transition: transform .18s ease, filter .18s ease, background .18s ease, border-color .18s ease; }
+button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-visible {
+  outline: 2px solid var(--ex-yellow); outline-offset: 3px;
+}
+::selection { background: rgba(245,207,56,.28); color: #fff; }
+#particle-canvas { opacity: .22 !important; }
+nav:not(.sidebar-nav) {
+  border-bottom: 1px solid var(--ex-line) !important;
+  box-shadow: 0 12px 35px rgba(0,0,0,.12);
+}
+.nav-links a { font-weight: 600 !important; letter-spacing: -.015em; }
+.btn-primary, .widget-btn, .trade-btn, .btn, button[type="submit"] {
+  border-radius: 11px;
+  font-weight: 700;
+}
+.btn-primary {
+  background: linear-gradient(135deg, #ffe98a 0%, var(--ex-yellow) 52%, #dcae20 100%) !important;
+  color: #17170d !important;
+  box-shadow: 0 8px 22px rgba(245,207,56,.13) !important;
+}
+.btn-primary:hover, .widget-btn:hover, .trade-btn:hover { filter: brightness(1.07); transform: translateY(-1px); }
+.btn-text { border-radius: 10px; }
+.theme-btn { border-color: var(--ex-line) !important; background: rgba(255,255,255,.025) !important; }
+#hero {
+  max-width: 1320px;
+  min-height: 620px;
+  padding-top: 150px !important;
+  padding-bottom: 100px !important;
+}
+.hero-content { max-width: 650px; }
+.hero-tag {
+  border: 1px solid rgba(245,207,56,.24) !important;
+  background: rgba(245,207,56,.075) !important;
+  letter-spacing: .02em;
+}
+.hero-title {
+  font-size: clamp(2.7rem, 5.2vw, 5rem) !important;
+  line-height: 1.04 !important;
+  letter-spacing: -.065em !important;
+  font-weight: 800 !important;
+  text-wrap: balance;
+}
+.hero-subtitle { max-width: 540px; line-height: 1.8 !important; color: #a2adbd !important; }
+.exchange-widget {
+  border: 1px solid rgba(180,195,214,.18) !important;
+  background: linear-gradient(150deg, rgba(24,31,42,.96), rgba(11,15,21,.96)) !important;
+  border-radius: 24px !important;
+  box-shadow: 0 28px 90px rgba(0,0,0,.34), 0 0 0 1px rgba(255,255,255,.015) inset !important;
+  backdrop-filter: blur(20px);
+}
+.widget-title { font-size: 1rem !important; letter-spacing: -.02em; }
+.input-group {
+  border: 1px solid var(--ex-line) !important;
+  border-radius: 13px !important;
+  background: rgba(4,7,11,.46) !important;
+}
+.input-group:focus-within { border-color: rgba(245,207,56,.55) !important; }
+.input-group input { font-variant-numeric: tabular-nums; }
+.currency-badge { border-radius: 10px !important; }
+#markets, #features { max-width: 1320px; margin-left: auto; margin-right: auto; padding-left: 28px; padding-right: 28px; }
+.market-header { align-items: end; gap: 18px; }
+.market-header h2, #features h2 { letter-spacing: -.045em; }
+table { border-collapse: separate; border-spacing: 0; }
+thead th { color: #8e9bad !important; font-size: 11px !important; text-transform: uppercase; letter-spacing: .09em; }
+tbody tr { transition: background .16s ease; }
+tbody tr:hover { background: rgba(255,255,255,.035) !important; }
+td, th { border-color: var(--ex-line) !important; }
+.price-up, .trade-green { color: var(--ex-green) !important; }
+.price-down, .trade-red { color: var(--ex-red) !important; }
+.feature-item {
+  border: 1px solid var(--ex-line) !important;
+  background: linear-gradient(145deg, rgba(20,27,37,.9), rgba(11,15,21,.9)) !important;
+  border-radius: 18px !important;
+  transition: transform .2s ease, border-color .2s ease !important;
+}
+.feature-item:hover { transform: translateY(-4px); border-color: rgba(245,207,56,.28) !important; }
+footer { border-top: 1px solid var(--ex-line) !important; }
+.app-container { background: transparent; }
+.sidebar {
+  background: rgba(12,16,22,.94) !important;
+  border-right: 1px solid var(--ex-line) !important;
+  backdrop-filter: blur(18px);
+}
+.sidebar-toggle { border-bottom-color: var(--ex-line) !important; }
+.sidebar-nav a { border-radius: 11px !important; margin: 2px 0; }
+.sidebar-nav a.active {
+  background: linear-gradient(90deg, rgba(245,207,56,.14), rgba(245,207,56,.045)) !important;
+  box-shadow: inset 2px 0 0 var(--ex-yellow);
+  color: var(--ex-yellow) !important;
+}
+.main-content {
+  max-width: none !important;
+  padding: 34px clamp(18px, 3vw, 48px) !important;
+}
+.top-bar { padding-bottom: 22px; border-bottom: 1px solid var(--ex-line); }
+.card, .panel, .stat-card, .balance-card, .wallet-card, .trade-card, .content-card, .settings-card, .section-card {
+  border: 1px solid var(--ex-line) !important;
+  border-radius: var(--ex-radius) !important;
+  background: linear-gradient(145deg, rgba(19,25,34,.96), rgba(12,16,22,.96)) !important;
+  box-shadow: 0 18px 44px rgba(0,0,0,.12);
+}
+input:not([type="checkbox"]):not([type="radio"]):not([type="file"]), select, textarea {
+  border-radius: 11px !important;
+  border-color: rgba(155,173,196,.2) !important;
+  background-color: rgba(5,8,12,.65) !important;
+  color: #eef2f7 !important;
+  transition: border-color .18s ease, box-shadow .18s ease;
+}
+input:focus, select:focus, textarea:focus {
+  border-color: rgba(245,207,56,.68) !important;
+  box-shadow: 0 0 0 3px rgba(245,207,56,.08);
+}
+input::placeholder, textarea::placeholder { color: #667386 !important; }
+table { width: 100%; }
+th { font-weight: 700; }
+td { color: #dce3ec; }
+.modal, [id*="modal"] {
+  backdrop-filter: blur(10px);
+}
+.login-box {
+  position: relative;
+  overflow: hidden;
+  max-width: 440px !important;
+  border: 1px solid rgba(155,173,196,.2) !important;
+  border-radius: 24px !important;
+  padding: 42px 34px !important;
+  background: linear-gradient(150deg, rgba(22,29,39,.98), rgba(10,14,20,.98)) !important;
+  box-shadow: 0 35px 100px rgba(0,0,0,.42) !important;
+}
+.login-box::before {
+  content: ""; position: absolute; left: 0; right: 0; top: 0; height: 2px;
+  background: linear-gradient(90deg, transparent, var(--ex-yellow), transparent);
+}
+.login-box h2 { font-size: 26px !important; letter-spacing: -.04em; margin-bottom: 26px !important; }
+.form-group label { font-size: 11px !important; letter-spacing: .09em !important; color: #a1adbd !important; }
+.login-box .btn-primary { min-height: 46px; }
+.error-msg { line-height: 1.55; }
+.hidden { display: none !important; }
+@media (max-width: 767px) {
+  nav:not(.sidebar-nav) { height: 64px !important; padding-left: 14px !important; padding-right: 14px !important; }
+  .nav-links { display: none !important; }
+  .nav-right { gap: 6px !important; }
+  .theme-btn { padding: 5px 8px !important; font-size: 11px !important; }
+  .btn-text { padding: 7px 8px !important; font-size: 12px !important; }
+  .btn-primary { padding: 9px 12px !important; }
+  #hero { padding: 118px 18px 58px !important; min-height: 0; gap: 32px !important; }
+  .hero-title { font-size: clamp(2.35rem, 11vw, 3.6rem) !important; }
+  .hero-subtitle { font-size: 14px !important; }
+  .exchange-widget { width: 100%; padding: 22px !important; }
+  #markets, #features { padding-left: 16px; padding-right: 16px; }
+  .main-content { padding: 18px 14px !important; margin-top: 46px; }
+  .top-bar { margin-bottom: 22px !important; }
+  .login-box { padding: 34px 22px !important; }
+  table { min-width: 620px; }
+  .app-container { min-width: 0; }
+}
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { scroll-behavior: auto !important; animation-duration: .01ms !important; transition-duration: .01ms !important; }
+}
