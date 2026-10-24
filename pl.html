@@ -255,10 +255,8 @@ const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBh
 const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 let currentUser = null;
 
-// 2FA gate. Every dashboard page treats "signed in" as good enough, so an
-// account with 2FA on could dodge the code by opening ./profile.html directly
-// (and by simply reloading, since nothing recorded that this session passed).
-// Pages call App.isOtpVerified() and bounce back here when it returns false.
+// MFA is enforced by Supabase Auth's signed assurance level (AAL2) on
+// protected pages. sessionStorage is only a UI convenience, never authorization.
 const OTP_KEY = 'exnya_otp_verified';
 
 function markOtpVerified(userId) {
