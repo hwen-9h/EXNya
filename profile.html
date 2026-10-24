@@ -680,11 +680,24 @@
                     window.location.href = './pl.html';
                     return;
                 }
-                // 2FA gate (separate from the session check, so we can tell the
-                // two failures apart in the console).
-                const flags = await App.getAccountFlags(auth.user.id);
-                if (flags && flags.is_2fa_enabled && !App.isOtpVerified(auth.user.id)) {
-                    console.warn('[profile] 2FA enrolled, no code entered in this tab -> sign-in page');
+                // Enforce MFA using Supabase's signed assurance level, not
+                // sessionStorage (which a visitor can edit in DevTools).
+                let assuranceResult;
+                try {
+                    assuranceResult = await supabaseClient.auth.mfa.getAuthenticatorAssuranceLevel();
+                } catch (mfaError) {
+                    console.error('[profile] MFA assurance check failed:', mfaError);
+                    window.location.href = './pl.html';
+                    return;
+                }
+                if (!assuranceResult || assuranceResult.error || !assuranceResult.data) {
+                    console.error('[profile] MFA assurance could not be verified');
+                    window.location.href = './pl.html';
+                    return;
+                }
+                if (assuranceResult.data.nextLevel === 'aal2' &&
+                    assuranceResult.data.currentLevel !== 'aal2') {
+                    console.warn('[profile] MFA required but session is only AAL1 -> sign-in page');
                     window.location.href = './pl.html';
                     return;
                 }
