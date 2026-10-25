@@ -877,3 +877,113 @@ body.light-theme:has(.app-container) .security-orbit-two { border-color: rgba(18
 body.light-theme:has(.app-container) .security-spark { background: #b58b00; box-shadow: 0 0 10px rgba(181,139,0,.24); }
 body.light-theme:has(.app-container) .status-badge { color: #303741; }
 body.light-theme:has(.app-container) .toast { color: #20252c; }
+
+
+/* Light-mode finishing pass — coherent ivory surfaces, legible typography, and a warm EXNYA gold. */
+body.light-theme:not(:has(.app-container)) {
+  --ex-bg: #f7f8fb;
+  --ex-surface: #ffffff;
+  --ex-surface-raised: #f0f3f7;
+  --ex-line: #dfe4eb;
+  --ex-muted: #596575;
+  --ex-text: #202733;
+  --ex-gold: #967000;
+  background: #f7f8fb !important;
+  color: #202733 !important;
+}
+body.light-theme:not(:has(.app-container)) > nav:not(.sidebar-nav) {
+  background: rgba(255,255,255,.94) !important;
+  border-bottom: 1px solid #e1e5eb !important;
+  box-shadow: 0 4px 22px rgba(24,35,52,.045) !important;
+}
+body.light-theme:not(:has(.app-container)) .nav-links a { color:#465160 !important; }
+body.light-theme:not(:has(.app-container)) .nav-links a:hover { color:#806000 !important; }
+body.light-theme:not(:has(.app-container)) .hero-title,
+body.light-theme:not(:has(.app-container)) .hero-title span {
+  color:#202733 !important;
+  -webkit-text-fill-color:#202733 !important;
+  text-shadow:none !important;
+}
+body.light-theme:not(:has(.app-container)) .hero-title span {
+  color:#9b7600 !important;
+  -webkit-text-fill-color:#9b7600 !important;
+}
+body.light-theme:not(:has(.app-container)) .hero-tag {
+  color:#566171 !important;
+  background:#fff !important;
+  border:1px solid #dce2e9 !important;
+  box-shadow:0 3px 12px rgba(24,35,52,.035);
+}
+body.light-theme:not(:has(.app-container)) .hero-subtitle,
+body.light-theme:not(:has(.app-container)) .hero-note,
+body.light-theme:not(:has(.app-container)) .exnya-cta p {
+  color:#596575 !important;
+}
+body.light-theme:not(:has(.app-container)) #hero::before {
+  background:radial-gradient(circle,rgba(252,213,53,.14),rgba(75,125,177,.045) 42%,transparent 72%) !important;
+}
+body.light-theme:not(:has(.app-container)) #hero::after {
+  opacity:.34 !important;
+  background-image:linear-gradient(rgba(70,86,106,.055) 1px,transparent 1px),
+    linear-gradient(90deg,rgba(70,86,106,.055) 1px,transparent 1px) !important;
+}
+body.light-theme:not(:has(.app-container)) .exchange-widget {
+  background:linear-gradient(155deg,#fff 0%,#fbfcfe 100%) !important;
+  color:#202733 !important;
+  border:1px solid #dfe4eb !important;
+  border-radius:22px !important;
+  box-shadow:0 22px 60px rgba(24,35,52,.12),0 3px 10px rgba(24,35,52,.035) !important;
+}
+body.light-theme:not(:has(.app-container)) .exchange-widget .widget-title {
+  color:#202733 !important;
+  -webkit-text-fill-color:#202733 !important;
+}
+body.light-theme:not(:has(.app-container)) .exchange-widget p,
+body.light-theme:not(:has(.app-container)) .exchange-widget > div[style*="display:flex"] {
+  color:#596575 !important;
+}
+body.light-theme:not(:has(.app-container)) .input-group {
+  background:#f4f6f9 !important;
+  border:1px solid #dfe4eb !important;
+  border-radius:14px !important;
+}
+body.light-theme:not(:has(.app-container)) .input-label { color:#657184 !important; }
+body.light-theme:not(:has(.app-container)) .input-group input {
+  color:#182230 !important;
+  -webkit-text-fill-color:#182230 !important;
+  font-weight:750 !important;
+}
+body.light-theme:not(:has(.app-container)) .currency-badge {
+  background:#e9edf2 !important;
+  color:#303b49 !important;
+  border:1px solid #d7dee7 !important;
+}
+body.light-theme:not(:has(.app-container)) .proof-strip {
+  background:#fff !important;
+  border:1px solid #e0e5ec !important;
+  box-shadow:0 10px 30px rgba(24,35,52,.045) !important;
+}
+body.light-theme:not(:has(.app-container)) .proof-value { color:#202733 !important; }
+body.light-theme:not(:has(.app-container)) .proof-label { color:#596575 !important; }
+body.light-theme:not(:has(.app-container)) #markets,
+body.light-theme:not(:has(.app-container)) #features { color:#202733 !important; }
+body.light-theme:not(:has(.app-container)) #markets h2,
+body.light-theme:not(:has(.app-container)) #features h2 { color:#202733 !important; }
+body.light-theme:not(:has(.app-container)) #markets th { color:#596575 !important; }
+body.light-theme:not(:has(.app-container)) #markets td { color:#293342 !important; }
+body.light-theme:not(:has(.app-container)) .feature-item {
+  border-radius:16px !important;
+  box-shadow:0 8px 24px rgba(24,35,52,.045) !important;
+}
+body.light-theme:not(:has(.app-container)) .btn-primary {
+  background:linear-gradient(135deg,#ffe984 0%,#fcd535 55%,#e9bb16 100%) !important;
+  color:#201a05 !important;
+  box-shadow:0 8px 22px rgba(181,139,0,.18) !important;
+}
+body.light-theme:not(:has(.app-container)) footer { color:#596575 !important; }
+@media (max-width:767px) {
+  body.light-theme:not(:has(.app-container)) > nav:not(.sidebar-nav) {
+    background:rgba(255,255,255,.97) !important;
+  }
+  body.light-theme:not(:has(.app-container)) #hero::after { opacity:.18 !important; }
+}
