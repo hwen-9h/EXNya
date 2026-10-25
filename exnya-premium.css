@@ -645,3 +645,116 @@ body.light-theme:has(.app-container) .theme-toggle-btn { background:#fff !import
   .exchange-widget { margin-top:14px; }
 }
 @media (prefers-reduced-motion:reduce) { .hero-coin { animation:none; } }
+
+
+/* Vivid EXNYA hero coin — larger silhouette, stronger metallic contrast and no clipping. */
+.exchange-widget { overflow: visible !important; }
+.exchange-widget .widget-title { position:relative; z-index:1; padding-right:104px; min-height:42px; }
+.hero-coin-scene {
+  top:-58px !important; right:8px !important;
+  width:158px !important; height:158px !important;
+  z-index:5 !important; overflow:visible !important;
+  perspective:900px !important;
+  filter:drop-shadow(0 0 22px rgba(252,213,53,.15));
+}
+.hero-coin {
+  width:108px !important; height:108px !important;
+  filter:drop-shadow(0 18px 22px rgba(0,0,0,.48))
+         drop-shadow(0 0 15px rgba(252,213,53,.2)) !important;
+  animation:exnya-coin-turn-vivid 5.8s cubic-bezier(.45,.05,.55,.95) infinite !important;
+}
+.hero-coin-edge {
+  background:repeating-linear-gradient(0deg,#6e4b05 0 2px,#fff09a 2px 3px,#d6a916 3px 5px,#8e6410 5px 6px) !important;
+  box-shadow:inset 0 0 0 2px #ffe778, 0 0 0 1px rgba(255,231,120,.85) !important;
+  transform:translateZ(-8px) rotateY(8deg) !important;
+}
+.hero-coin-face {
+  color:#fff4b1 !important;
+  border:3px solid #fff0a0 !important;
+  background:
+    radial-gradient(ellipse at 27% 17%,rgba(255,255,228,.98) 0%,rgba(255,227,112,.95) 5%,transparent 20%),
+    radial-gradient(circle at 32% 23%,#ffe978 0%,#e5b92f 23%,#9b6b0b 52%,#3c2a08 73%,#15171b 100%) !important;
+  box-shadow:
+    inset 0 0 0 4px rgba(255,247,190,.78),
+    inset 0 0 0 7px rgba(106,70,5,.82),
+    inset 0 0 0 9px rgba(255,227,107,.88),
+    inset 0 -18px 22px rgba(33,20,0,.62),
+    0 0 0 1px rgba(255,244,177,.95),
+    0 0 24px rgba(252,213,53,.34) !important;
+}
+.hero-coin-mark {
+  font-size:47px !important; line-height:1 !important;
+  color:#fff6c6 !important;
+  text-shadow:0 2px 1px #684600,0 0 9px rgba(255,245,181,.7),0 0 20px rgba(255,226,102,.55) !important;
+}
+.hero-coin-name {
+  font-size:9px !important; letter-spacing:2.8px !important;
+  margin-left:3px !important; color:#fff4bd !important;
+  text-shadow:0 1px 2px rgba(48,29,0,.85) !important;
+}
+.hero-coin-orbit {
+  width:148px !important; height:47px !important;
+  border:1.5px solid rgba(255,220,92,.72) !important;
+  box-shadow:0 0 13px rgba(252,213,53,.18),inset 0 0 9px rgba(252,213,53,.07) !important;
+  animation:exnya-orbit-pulse 3.4s ease-in-out infinite alternate;
+}
+.hero-coin-orbit-one { transform:rotate(-27deg) rotateX(62deg) !important; }
+.hero-coin-orbit-two {
+  width:127px !important; height:39px !important;
+  border-color:rgba(255,246,190,.48) !important;
+  transform:rotate(47deg) rotateX(62deg) !important;
+  animation-delay:-1.4s;
+}
+.hero-coin-glint {
+  top:30px !important; right:34px !important;
+  width:9px !important; height:9px !important;
+  background:#fffef0 !important;
+  box-shadow:0 0 8px 3px rgba(255,255,220,.95),0 0 24px 8px rgba(255,211,49,.65) !important;
+  animation:exnya-glint 2.8s ease-in-out infinite;
+}
+@keyframes exnya-coin-turn-vivid {
+  0%,100% { transform:rotateY(-24deg) rotateX(9deg) rotateZ(-5deg) translateY(0) scale(1); }
+  30% { transform:rotateY(5deg) rotateX(-2deg) rotateZ(1deg) translateY(-7px) scale(1.035); }
+  62% { transform:rotateY(25deg) rotateX(6deg) rotateZ(5deg) translateY(-3px) scale(1.015); }
+}
+@keyframes exnya-orbit-pulse {
+  from { opacity:.42; filter:brightness(.9); }
+  to { opacity:1; filter:brightness(1.4); }
+}
+@keyframes exnya-glint {
+  0%,100% { opacity:.5; transform:scale(.8); }
+  50% { opacity:1; transform:scale(1.2); }
+}
+/* Light mode keeps the gold bright while adding a clear outline against white surfaces. */
+body.light-theme .hero-coin-scene {
+  filter:drop-shadow(0 0 22px rgba(184,137,0,.2)) !important;
+}
+body.light-theme .hero-coin {
+  filter:drop-shadow(0 18px 20px rgba(65,47,0,.24))
+         drop-shadow(0 0 12px rgba(184,137,0,.23)) !important;
+}
+body.light-theme .hero-coin-face {
+  border-color:#fff5bd !important;
+  box-shadow:inset 0 0 0 4px rgba(255,255,235,.92),inset 0 0 0 7px rgba(105,70,4,.75),
+    inset 0 0 0 9px rgba(255,231,129,.9),inset 0 -18px 22px rgba(33,20,0,.5),
+    0 0 0 1px #b88b16,0 0 22px rgba(181,139,0,.3) !important;
+}
+body.light-theme .hero-coin-orbit { border-color:rgba(155,111,0,.72) !important; }
+body.light-theme .hero-coin-orbit-two { border-color:rgba(181,139,0,.5) !important; }
+@media (max-width:767px) {
+  .exchange-widget .widget-title { padding-right:78px; }
+  .hero-coin-scene {
+    top:-43px !important; right:-2px !important;
+    width:112px !important; height:112px !important;
+    transform:none !important;
+  }
+  .hero-coin { width:78px !important; height:78px !important; }
+  .hero-coin-mark { font-size:35px !important; }
+  .hero-coin-name { font-size:6px !important; letter-spacing:1.7px !important; }
+  .hero-coin-orbit { width:107px !important; height:34px !important; }
+  .hero-coin-orbit-two { width:92px !important; height:29px !important; }
+  .hero-coin-glint { top:17px !important; right:22px !important; width:6px !important; height:6px !important; }
+}
+@media (prefers-reduced-motion:reduce) {
+  .hero-coin, .hero-coin-orbit, .hero-coin-glint { animation:none !important; }
+}
