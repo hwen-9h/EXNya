@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 520 120" role="img" aria-labelledby="title desc">
+  <title id="title">EXNYA</title>
+  <desc id="desc">EXNYA cryptocurrency exchange logo with a geometric gold emblem and bold wordmark.</desc>
+  <defs>
+    <linearGradient id="gold" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#ffe98a"/>
+      <stop offset=".48" stop-color="#fcd535"/>
+      <stop offset="1" stop-color="#d99b08"/>
+    </linearGradient>
+  </defs>
+  <g transform="translate(10 10)">
+    <path d="M50 0 94 25v50L50 100 6 75V25L50 0Z" fill="none" stroke="url(#gold)" stroke-width="7" stroke-linejoin="round"/>
+    <path d="m29 30 21 20-21 20M71 30 50 50l21 20" fill="none" stroke="url(#gold)" stroke-width="8" stroke-linecap="square" stroke-linejoin="miter"/>
+    <path d="M50 27v46" stroke="#fcd535" stroke-width="5" stroke-linecap="round" opacity=".9"/>
+  </g>
+  <text x="128" y="82" fill="#fcd535" font-family="Inter,Arial,sans-serif" font-size="76" font-weight="800" letter-spacing="3">EXNYA</text>
+</svg>
