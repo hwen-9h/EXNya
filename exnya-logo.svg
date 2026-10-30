@@ -1,17 +1,23 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 520 120" role="img" aria-labelledby="title desc">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 520 124" role="img" aria-labelledby="title desc">
   <title id="title">EXNYA</title>
-  <desc id="desc">EXNYA cryptocurrency exchange logo with a geometric gold emblem and bold wordmark.</desc>
+  <desc id="desc">EXNYA wordmark in metallic gold, with the extended diagonal X mark from the supplied reference.</desc>
   <defs>
-    <linearGradient id="gold" x1="0" y1="0" x2="1" y2="1">
-      <stop offset="0" stop-color="#ffe98a"/>
-      <stop offset=".48" stop-color="#fcd535"/>
-      <stop offset="1" stop-color="#d99b08"/>
+    <linearGradient id="gold" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#fff0b0"/><stop offset=".38" stop-color="#f4d783"/>
+      <stop offset=".72" stop-color="#d6a94c"/><stop offset="1" stop-color="#a87525"/>
+    </linearGradient>
+    <linearGradient id="shine" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#fff4c4"/><stop offset=".55" stop-color="#e7c16a"/><stop offset="1" stop-color="#b17b2c"/>
     </linearGradient>
   </defs>
-  <g transform="translate(10 10)">
-    <path d="M50 0 94 25v50L50 100 6 75V25L50 0Z" fill="none" stroke="url(#gold)" stroke-width="7" stroke-linejoin="round"/>
-    <path d="m29 30 21 20-21 20M71 30 50 50l21 20" fill="none" stroke="url(#gold)" stroke-width="8" stroke-linecap="square" stroke-linejoin="miter"/>
-    <path d="M50 27v46" stroke="#fcd535" stroke-width="5" stroke-linecap="round" opacity=".9"/>
+  <g fill="url(#gold)">
+    <path d="M8 12H103V29H28V48H94V64H28V91H104V109H8Z"/>
+    <path d="M112 12H140L190 59L212 83L190 109L162 82L112 30Z"/>
+    <path d="M190 12H218L169 64L145 91L128 109H101L145 61Z"/>
+    <path d="M224 12H251L310 76V12H336V109H310L250 44V109H224Z"/>
+    <path d="M341 12H371L407 51L443 12H473L420 72V109H394V72Z"/>
+    <path fill-rule="evenodd" d="M400 109L444 12H472L516 109H487L478 88H437L428 109ZM446 69H469L457 40Z"/>
   </g>
-  <text x="128" y="82" fill="#fcd535" font-family="Inter,Arial,sans-serif" font-size="76" font-weight="800" letter-spacing="3">EXNYA</text>
+  <path d="M118 116L205 0H220L134 116Z" fill="url(#shine)"/>
+  <path d="M130 116L212 7" fill="none" stroke="#fff0b0" stroke-width="2.2" opacity=".85"/>
 </svg>
