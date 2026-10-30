@@ -1,23 +1,22 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 520 124" role="img" aria-labelledby="title desc">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 384 89" role="img" aria-labelledby="title desc">
   <title id="title">EXNYA</title>
-  <desc id="desc">EXNYA wordmark in metallic gold, with the extended diagonal X mark from the supplied reference.</desc>
+  <desc id="desc">EXNYA wordmark matching the supplied reference, with a broad angular X and two narrow diagonal gold streaks.</desc>
   <defs>
     <linearGradient id="gold" x1="0" y1="0" x2="0" y2="1">
-      <stop offset="0" stop-color="#fff0b0"/><stop offset=".38" stop-color="#f4d783"/>
-      <stop offset=".72" stop-color="#d6a94c"/><stop offset="1" stop-color="#a87525"/>
+      <stop offset="0" stop-color="#fff0ad"/><stop offset=".38" stop-color="#f6df9a"/>
+      <stop offset=".72" stop-color="#d8ae61"/><stop offset="1" stop-color="#a87527"/>
     </linearGradient>
-    <linearGradient id="shine" x1="0" y1="0" x2="1" y2="1">
-      <stop offset="0" stop-color="#fff4c4"/><stop offset=".55" stop-color="#e7c16a"/><stop offset="1" stop-color="#b17b2c"/>
+    <linearGradient id="slash" x1="0" y1="1" x2="1" y2="0">
+      <stop offset="0" stop-color="#b77d2b"/><stop offset=".48" stop-color="#f4d98c"/><stop offset="1" stop-color="#fff0b2"/>
     </linearGradient>
   </defs>
   <g fill="url(#gold)">
-    <path d="M8 12H103V29H28V48H94V64H28V91H104V109H8Z"/>
-    <path d="M112 12H140L190 59L212 83L190 109L162 82L112 30Z"/>
-    <path d="M190 12H218L169 64L145 91L128 109H101L145 61Z"/>
-    <path d="M224 12H251L310 76V12H336V109H310L250 44V109H224Z"/>
-    <path d="M341 12H371L407 51L443 12H473L420 72V109H394V72Z"/>
-    <path fill-rule="evenodd" d="M400 109L444 12H472L516 109H487L478 88H437L428 109ZM446 69H469L457 40Z"/>
+    <path d="M3 8H74V19H17V35H68V47H17V68H75V80H3Z"/>
+    <path d="M81 8H103L123 28L143 8H164L134 43L154 63L139 80L117 58L96 80H80L109 43Z"/>
+    <path d="M165 8H185L229 59V8H249V80H229L185 29V80H165Z"/>
+    <path d="M253 8H275L301 35L328 8H350L311 51V80H292V51Z"/>
+    <path fill-rule="evenodd" d="M331 80L359 8H378L383 80H363L359 61H344L337 80ZM348 48H357L353 30Z"/>
   </g>
-  <path d="M118 116L205 0H220L134 116Z" fill="url(#shine)"/>
-  <path d="M130 116L212 7" fill="none" stroke="#fff0b0" stroke-width="2.2" opacity=".85"/>
+  <path d="M85 87L151 0H160L96 87Z" fill="url(#slash)"/>
+  <path d="M94 87L160 0H165L101 87Z" fill="url(#slash)" opacity=".92"/>
 </svg>
